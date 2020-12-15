@@ -4,6 +4,8 @@ int main() {
 
     // load all assets
     ns::Res::load("assets");
+    ns::Config::Window::framerate_limit = 200;
+    ns::Config::Window::update_rate = 60;
 
     // configure some inputs buttons
     ns::Config::Inputs::setButtonKey("droite", sf::Keyboard::Right);
