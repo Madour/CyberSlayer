@@ -11,15 +11,17 @@
 
 ###### User Configuration #####################################################
 # Project Name, which is also the ouput binary file name
-set(PROJECT_NAME "NasNas_Game_Template")
+set(PROJECT_NAME "RayCastFPS")
 # Assets directory path, will be copied in bin when cmake is called
-set(ASSETS_DIR_NAME "")
+set(ASSETS_DIR_NAME "assets")
 ###############################################################################
 
 
 cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE bin)
 
 project(${PROJECT_NAME})
 
@@ -45,5 +47,5 @@ add_executable(${PROJECT_NAME}
     main.cpp
 )
 target_include_directories(${PROJECT_NAME} PRIVATE src include NasNas/include)
-target_link_libraries(${PROJECT_NAME} NasNas sfml-graphics sfml-audio)
+target_link_libraries(${PROJECT_NAME} NasNas)
 ###############################################################################
