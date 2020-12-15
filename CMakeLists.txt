@@ -49,3 +49,19 @@ add_executable(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} PRIVATE src include NasNas/include)
 target_link_libraries(${PROJECT_NAME} NasNas)
 ###############################################################################
+
+if(NASNAS_BUILD_RESLIB)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE -DNS_RESLIB)
+endif()
+
+if(NASNAS_BUILD_ECS)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE -DNS_ECS)
+endif()
+
+if(NASNAS_BUILD_TILEMAPPING)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE -DNS_TILEMAPPING)
+endif()
+
+if(NASNAS_BUILD_UI)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE -DNS_UI)
+endif()
