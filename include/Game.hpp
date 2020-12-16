@@ -13,10 +13,10 @@ public:
     std::vector<std::unique_ptr<sf::Sprite>> m_sprites;
 
     // m_map[y][x]
-    std::array<std::string, 10> m_map;
+    std::array<std::string, 20> m_map;
     float m_max_depth;
 
-    float m_fov = ns::to_radian(50.f);
+    float m_fov;
 
     sf::Vector2f m_player_pos;
     sf::Vector2f m_player_angle;
