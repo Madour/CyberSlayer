@@ -21,7 +21,11 @@ bool lineIntersect(const sf::Vector2f p1, const sf::Vector2f p2, const sf::Vecto
     return (0 <= t && t <= 1 && 0 <= u && u <= 1);
 }
 
-Game::Game() : ns::App("Ray Cast FPS", {1200, 675}, 1){
+Game::Game() :
+ns::App("Ray Cast FPS", {1200, 675}, 1),
+m_minimap_player("mini_player"),
+m_minimap_rays("mini_rays")
+{
     sf::Vector2f res;
     auto b = lineIntersect({0, 0}, {3, 1}, {1, 0}, {0, -0}, res);
     ns_LOG(b, res);
@@ -68,9 +72,40 @@ Game::Game() : ns::App("Ray Cast FPS", {1200, 675}, 1){
     m_player_pos.x = 1.5;
     m_player_pos.y = 1.5;
 
+    // hud drawables
     m_hp_bar.setSize({200, 10});
     m_hp_bar.setPosition(20, 20);
     m_hp_bar.setFillColor(sf::Color::Red);
+
+    m_minimap_bg.setSize({252, 252});
+    m_minimap_bg.setFillColor(sf::Color(25, 25, 0));
+
+    // minimap drawables
+    sf::RectangleShape wall;
+    wall.setSize({25, 25});
+    m_minimap_texture.create(25 * m_map[0].size(), 25 * m_map.size());
+    m_minimap_texture.clear();
+    for (std::size_t y = 0; y < m_map.size(); ++y) {
+        for (std::size_t x = 0; x < m_map[0].size(); ++x) {
+            if (m_map[y][x] == '#'){
+                wall.setPosition(float(x*25), float(y*25));
+                m_minimap_texture.draw(wall);
+            }
+        }
+    }
+    m_minimap_texture.display();
+
+    sf::CircleShape player_shape{5.f};
+    player_shape.setOrigin(5.f, 5.f);
+    player_shape.setFillColor(sf::Color::Blue);
+    m_minimap_player.addComponent<ns::ecs::CircleShapeComponent>(player_shape);
+
+    sf::LineShape ray;
+    ray.addPoint(0, 0);
+    ray.addPoint(0, 0);
+    ray.setColor(sf::Color::Green);
+    for (int i = 0; i < int(getWindow().getAppView().getSize().x); ++i)
+        m_minimap_rays.addComponent<ns::ecs::LineShapeComponent>(ray);
 
     ///////////////////////////////////////////////////////
     // create the main scene
@@ -92,17 +127,32 @@ Game::Game() : ns::App("Ray Cast FPS", {1200, 675}, 1){
     camera->lookAt(scene);
     ///////////////////////////////////////////////////////
 
-
     ///////////////////////////////////////////////////////
     // create the HUD scene
     auto* hud = createScene("hud");
 
     // add drawables to the HUD scene here
-    hud->getDefaultLayer()->addRaw(&m_hp_bar);
+    //hud->getDefaultLayer()->addRaw(&m_hp_bar);
+    hud->getDefaultLayer()->addRaw(&m_minimap_bg);
 
     // create the HUD camera
-    auto* hud_cam = createCamera("hud_came", 1);
-    //hud_cam->lookAt(hud);
+    auto* hud_cam = createCamera("hud", 1);
+    hud_cam->lookAt(hud);
+    ///////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////
+    // create the Minimap scene
+    auto* minimap = createScene("minimap");
+
+    // add drawables to the Minimap scene here
+    minimap->getDefaultLayer()->add(new sf::Sprite(m_minimap_texture.getTexture()));
+    minimap->getDefaultLayer()->addRaw(&m_minimap_rays);
+    minimap->getDefaultLayer()->addRaw(&m_minimap_player);
+
+    // create the Minimap camera
+    auto* minimap_cam = createCamera("minimap", 2, {0, 0, 25*10, 25*10}, {0, 0, 250, 250});
+    minimap_cam->lookAt(minimap);
+    minimap_cam->follow(m_minimap_player);
     ///////////////////////////////////////////////////////
 
     ns::DebugTextInterface::font_size = 15;
@@ -152,6 +202,9 @@ void Game::update() {
         m_player_pos.y += 0.05f*player_dir.x;
         m_player_pos.x -= 0.05f*player_dir.y;
     }
+
+    m_minimap_player.transform()->setPosition(m_player_pos*25.f);
+    getCamera("minimap")->setRotation(m_player_angle.x + 90);
 }
 
 void Game::preRender() {
@@ -163,10 +216,12 @@ void Game::preRender() {
         float distance = 0;
         bool hit = false;
 
+        sf::Vector2f test;
+
         while (!hit  && distance < m_max_depth) {
             distance += step;
 
-            sf::Vector2f test = {
+            test = {
                     m_player_pos.x + cos(ray_angle) * distance,
                     m_player_pos.y + sin(ray_angle) * distance,
             };
@@ -195,8 +250,7 @@ void Game::preRender() {
         // print the distance to the wall the player is facing
         //if (i == nb_of_rays/2) ns_LOG(distance);
 
-        // give the feel of bigger space
-        distance *= 1.5f;
+        distance *= 1.5f;   // gives the feel of bigger space
 
         float horizon = getWindow().getAppView().getSize().y / 2.f;
         float ceiling = horizon - getWindow().getAppView().getSize().y / (distance/2.f);
@@ -208,5 +262,8 @@ void Game::preRender() {
                              static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*8))),
                              static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*8))),
                              255});
+
+        m_minimap_rays.graphics<ns::ecs::LineShapeComponent>(i)->getDrawable().setPoint(0, m_player_pos*25.f);
+        m_minimap_rays.graphics<ns::ecs::LineShapeComponent>(i)->getDrawable().setPoint(1, test*25.f);
     }
 }
