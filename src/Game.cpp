@@ -25,8 +25,7 @@ bool lineIntersect(const sf::Vector2f p1, const sf::Vector2f p2, const sf::Vecto
 
 Game::Game() :
 ns::App("Ray Cast FPS", {1200, 675}, 1),
-m_minimap_player("mini_player"),
-m_minimap_rays("mini_rays")
+m_minimap_player("mini_player")
 {
     sf::Vector2f res;
     auto b = lineIntersect({0, 0}, {3, 1}, {1, 0}, {0, -0}, res);
@@ -129,12 +128,9 @@ m_minimap_rays("mini_rays")
     player_shape.setFillColor(sf::Color::Blue);
     m_minimap_player.addComponent<ns::ecs::CircleShapeComponent>(player_shape);
 
-    ns::LineShape ray;
-    ray.addPoint(0, 0);
-    ray.addPoint(0, 0);
-    ray.setColor(sf::Color::Green);
-    for (int i = 0; i < int(getWindow().getAppView().getSize().x); ++i)
-        m_minimap_rays.addComponent<ns::ecs::LineShapeComponent>(ray);
+    m_minimap_rays.setPrimitiveType(sf::PrimitiveType::Lines);
+    for (int i = 0; i < int(getWindow().getAppView().getSize().x)*2; ++i) 
+        m_minimap_rays.append({ {0, 0}, sf::Color::Green });
 
     ///////////////////////////////////////////////////////
     // create the main scene
@@ -292,15 +288,15 @@ void Game::preRender() {
         float ceiling = horizon - getWindow().getAppView().getSize().y / (distance/2.f);
         float floor = horizon + getWindow().getAppView().getSize().y / distance;
 
-        m_quads[i].setPosition(float(i), ceiling - getWindow().getAppView().getSize().y * m_player_angle.y/45.f);
-        m_quads[i].setScale(1, (floor - ceiling) / getWindow().getAppView().getSize().y);
-        m_quads[i].setColor({static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*8))),
+        auto& slice = m_quads[i];
+        slice.setPosition(float(i), ceiling - getWindow().getAppView().getSize().y * m_player_angle.y/45.f);
+        slice.setScale(1, (floor - ceiling) / getWindow().getAppView().getSize().y);
+        slice.setColor({static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*8))),
                              static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*8))),
                              static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*8))),
                              255});
 
-        auto& lineshape = m_minimap_rays.graphics<ns::ecs::LineShapeComponent>(i)->getDrawable();
-        lineshape.setPoint(0, m_player_pos*25.f);
-        lineshape.setPoint(1, test*25.f);
+        m_minimap_rays[2*i].position = m_minimap_player.getPosition();
+        m_minimap_rays[2*i + 1].position = test * 25.f;
     }
 }

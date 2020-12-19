@@ -28,5 +28,5 @@ public:
 
     sf::RenderTexture m_minimap_texture;
     ns::BaseEntity m_minimap_player;
-    ns::BaseEntity m_minimap_rays;
+    ns::VertexArray m_minimap_rays;
 };
