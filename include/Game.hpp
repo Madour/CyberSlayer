@@ -11,12 +11,14 @@ public:
     void preRender() override;
 
     // m_map[y][x]
-    std::array<std::string, 20> m_map;
+    char m_map[20][33];
+	sf::Vector2i m_map_size;
     float m_max_depth;
 
     float m_fov;
     sf::Vector2f m_player_pos;
     sf::Vector2f m_player_angle;
+	float m_midview_distance;
 
     sf::RenderTexture m_white_texture;
     std::vector<sf::Sprite> m_quads;

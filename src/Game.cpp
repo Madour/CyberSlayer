@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS		// disable useless warnings when using strcpy 
+
 #include "Game.hpp"
 
 float cross(const sf::Vector2f& v1, const sf::Vector2f& v2) {
@@ -36,6 +38,7 @@ m_minimap_rays("mini_rays")
     ns_LOG("AppView Size :", getWindow().getAppView().getSize());
     ns_LOG("View Size :", ns::Config::Window::view_size);
 
+	/*
     m_map = {
             "###################",
             "#                 #",
@@ -58,7 +61,32 @@ m_minimap_rays("mini_rays")
             "#                 #",
             "###################"
     };
-    m_max_depth = float(std::hypot(m_map.size(), m_map[0].size()))*1.5f;
+	*/
+
+	strcpy(m_map[0],  "###################");
+	strcpy(m_map[1],  "#                 #");
+	strcpy(m_map[2],  "#######           #");
+	strcpy(m_map[3],  "#######           #");
+	strcpy(m_map[4],  "#######           #");
+	strcpy(m_map[5],  "#    #  ### ##### #");
+	strcpy(m_map[6],  "#    #  ######### #");
+	strcpy(m_map[7],  "#    #  ########  #");
+	strcpy(m_map[8],  "#                 #");
+	strcpy(m_map[9],  "###### ############");
+	strcpy(m_map[10], "###### ############");
+	strcpy(m_map[11], "###### ############");
+	strcpy(m_map[12], "###### ############");
+	strcpy(m_map[13], "###### ############");
+	strcpy(m_map[14], "#    # #          #");
+	strcpy(m_map[15], "#      #      #   #");
+	strcpy(m_map[16], "#    # #      #   #");
+	strcpy(m_map[17], "###### #### #######");
+	strcpy(m_map[18], "#                 #");
+	strcpy(m_map[19], "###################");
+
+	m_map_size = {33, 20};
+
+    m_max_depth = float(std::hypot(m_map_size.y, m_map_size.x))*1.5f;
     m_fov = 60.f;
 
     ns_LOG("Ray cast max depth :", m_max_depth);
@@ -77,16 +105,17 @@ m_minimap_rays("mini_rays")
     m_hp_bar.setPosition(20, 20);
     m_hp_bar.setFillColor(sf::Color::Red);
 
-    m_minimap_bg.setSize({252, 252});
+    m_minimap_bg.setSize({251, 251});
     m_minimap_bg.setFillColor(sf::Color(25, 25, 0));
+	m_minimap_bg.setPosition(getWindow().getAppView().getSize().x - 251, 0);
 
     // minimap drawables
     sf::RectangleShape wall;
     wall.setSize({25, 25});
-    m_minimap_texture.create(25 * m_map[0].size(), 25 * m_map.size());
+    m_minimap_texture.create(25 * m_map_size.x, 25 * m_map_size.y);
     m_minimap_texture.clear();
-    for (std::size_t y = 0; y < m_map.size(); ++y) {
-        for (std::size_t x = 0; x < m_map[0].size(); ++x) {
+    for (int y = 0; y < m_map_size.y; ++y) {
+        for (int x = 0; x < m_map_size.x; ++x) {
             if (m_map[y][x] == '#'){
                 wall.setPosition(float(x*25), float(y*25));
                 m_minimap_texture.draw(wall);
@@ -100,7 +129,7 @@ m_minimap_rays("mini_rays")
     player_shape.setFillColor(sf::Color::Blue);
     m_minimap_player.addComponent<ns::ecs::CircleShapeComponent>(player_shape);
 
-    sf::LineShape ray;
+    ns::LineShape ray;
     ray.addPoint(0, 0);
     ray.addPoint(0, 0);
     ray.setColor(sf::Color::Green);
@@ -150,7 +179,7 @@ m_minimap_rays("mini_rays")
     minimap->getDefaultLayer()->addRaw(&m_minimap_player);
 
     // create the Minimap camera
-    auto* minimap_cam = createCamera("minimap", 2, {0, 0, 25*10, 25*10}, {0, 0, 250, 250});
+    auto* minimap_cam = createCamera("minimap", 2, {0, 0, 25*10, 25*10}, {getWindow().getAppView().getSize().x-250, 0, 250, 250});
     minimap_cam->lookAt(minimap);
     minimap_cam->follow(m_minimap_player);
     ///////////////////////////////////////////////////////
@@ -158,8 +187,9 @@ m_minimap_rays("mini_rays")
     ns::DebugTextInterface::font_size = 15;
     ns::DebugTextInterface::outline_thickness = 1;
     ns::DebugTextInterface::outline_color = sf::Color::Black;
-    addDebugText<sf::Vector2f>(&m_player_pos, "player_pos", {0, 0});
-    addDebugText<sf::Vector2f>(&m_player_angle, "player_angle", {0, 20});
+    addDebugText<sf::Vector2f>(&m_player_pos, "player_pos :", {0, 0});
+    addDebugText<sf::Vector2f>(&m_player_angle, "player_angle :", {0, 20});
+    addDebugText<float>(&m_midview_distance, "distance mid view :", {0, 40});
 }
 
 void Game::onEvent(const sf::Event& event) {
@@ -209,46 +239,51 @@ void Game::update() {
 
 void Game::preRender() {
     int nb_of_rays = int(getWindow().getAppView().getSize().x);
-    float step = 0.02f;
+    float step = 0.01f;
     for (int i = 0; i < nb_of_rays; ++i) {
 
         float ray_angle = ns::to_radian(m_player_angle.x - m_fov/2 + (float(i) / float(nb_of_rays)) * m_fov);
+		float ray_cos = std::cos(ray_angle);
+		float ray_sin = std::sin(ray_angle);
         float distance = 0;
         bool hit = false;
 
         sf::Vector2f test;
+        sf::Vector2i test_i;
 
         while (!hit  && distance < m_max_depth) {
             distance += step;
 
-            test = {
-                    m_player_pos.x + cos(ray_angle) * distance,
-                    m_player_pos.y + sin(ray_angle) * distance,
-            };
+			test.x = m_player_pos.x + ray_cos * distance;
+			test.y = m_player_pos.y + ray_sin * distance;
+
+			test_i.x = int(test.x);
+			test_i.y = int(test.y);
 
             // test if outside the map
-            if (int(test.x) < 0 || unsigned(test.x) >= m_map[0].size() || int(test.y) < 0 || unsigned(test.y) >= m_map.size()) {
+            if (test_i.x < 0 || test_i.x >= m_map_size.x || test_i.y < 0 || test_i.y >= m_map_size.y) {
                 hit = true;
                 distance = m_max_depth;
                 step = 0.05f;
             }
             else {
-                if (m_map[int(test.y)][int(test.x)] == '#') {
+                if (m_map[test_i.y][test_i.x] == '#') {
                     hit = true;
-                    if (distance <= 0.05f)
-                        step = 0.001f;
+                    if (distance <= 0.2f)
+                        step = 0.0005f;
                     else if (distance <= 1.f)
-                        step = 0.005f;
+                        step = 0.001f;
                     else if (distance <= 3.f )
-                        step = 0.01f;
+                        step = 0.005f;
                     else
-                        step = 0.02f;
+                        step = 0.01f;
                 }
             }
         }
 
-        // print the distance to the wall the player is facing
-        //if (i == nb_of_rays/2) ns_LOG(distance);
+        // store the distance to the middle point in the view
+        if (i == nb_of_rays/2)
+			m_midview_distance = distance;
 
         distance *= 1.5f;   // gives the feel of bigger space
 
@@ -263,7 +298,8 @@ void Game::preRender() {
                              static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*8))),
                              255});
 
-        m_minimap_rays.graphics<ns::ecs::LineShapeComponent>(i)->getDrawable().setPoint(0, m_player_pos*25.f);
-        m_minimap_rays.graphics<ns::ecs::LineShapeComponent>(i)->getDrawable().setPoint(1, test*25.f);
+		auto& lineshape = m_minimap_rays.graphics<ns::ecs::LineShapeComponent>(i)->getDrawable();
+        lineshape.setPoint(0, m_player_pos*25.f);
+        lineshape.setPoint(1, test*25.f);
     }
 }
