@@ -1,4 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS		// disable useless warnings when using strcpy 
+#define _CRT_SECURE_NO_WARNINGS     // disable useless warnings when using strcpy 
 
 #include "Game.hpp"
 
@@ -38,7 +38,7 @@ m_minimap_rays("mini_rays")
     ns_LOG("AppView Size :", getWindow().getAppView().getSize());
     ns_LOG("View Size :", ns::Config::Window::view_size);
 
-	/*
+    /*
     m_map = {
             "###################",
             "#                 #",
@@ -61,30 +61,30 @@ m_minimap_rays("mini_rays")
             "#                 #",
             "###################"
     };
-	*/
+    */
 
-	strcpy(m_map[0],  "###################");
-	strcpy(m_map[1],  "#                 #");
-	strcpy(m_map[2],  "#######           #");
-	strcpy(m_map[3],  "#######           #");
-	strcpy(m_map[4],  "#######           #");
-	strcpy(m_map[5],  "#    #  ### ##### #");
-	strcpy(m_map[6],  "#    #  ######### #");
-	strcpy(m_map[7],  "#    #  ########  #");
-	strcpy(m_map[8],  "#                 #");
-	strcpy(m_map[9],  "###### ############");
-	strcpy(m_map[10], "###### ############");
-	strcpy(m_map[11], "###### ############");
-	strcpy(m_map[12], "###### ############");
-	strcpy(m_map[13], "###### ############");
-	strcpy(m_map[14], "#    # #          #");
-	strcpy(m_map[15], "#      #      #   #");
-	strcpy(m_map[16], "#    # #      #   #");
-	strcpy(m_map[17], "###### #### #######");
-	strcpy(m_map[18], "#                 #");
-	strcpy(m_map[19], "###################");
+    strcpy(m_map[0],  "###################");
+    strcpy(m_map[1],  "#                 #");
+    strcpy(m_map[2],  "#######           #");
+    strcpy(m_map[3],  "#######           #");
+    strcpy(m_map[4],  "#######           #");
+    strcpy(m_map[5],  "#    #  ### ##### #");
+    strcpy(m_map[6],  "#    #  ######### #");
+    strcpy(m_map[7],  "#    #  ########  #");
+    strcpy(m_map[8],  "#                 #");
+    strcpy(m_map[9],  "###### ############");
+    strcpy(m_map[10], "###### ############");
+    strcpy(m_map[11], "###### ############");
+    strcpy(m_map[12], "###### ############");
+    strcpy(m_map[13], "###### ############");
+    strcpy(m_map[14], "#    # #          #");
+    strcpy(m_map[15], "#      #      #   #");
+    strcpy(m_map[16], "#    # #      #   #");
+    strcpy(m_map[17], "###### #### #######");
+    strcpy(m_map[18], "#                 #");
+    strcpy(m_map[19], "###################");
 
-	m_map_size = {33, 20};
+    m_map_size = {20, 20};
 
     m_max_depth = float(std::hypot(m_map_size.y, m_map_size.x))*1.5f;
     m_fov = 60.f;
@@ -107,7 +107,7 @@ m_minimap_rays("mini_rays")
 
     m_minimap_bg.setSize({251, 251});
     m_minimap_bg.setFillColor(sf::Color(25, 25, 0));
-	m_minimap_bg.setPosition(getWindow().getAppView().getSize().x - 251, 0);
+    m_minimap_bg.setPosition(getWindow().getAppView().getSize().x - 251, 0);
 
     // minimap drawables
     sf::RectangleShape wall;
@@ -243,8 +243,8 @@ void Game::preRender() {
     for (int i = 0; i < nb_of_rays; ++i) {
 
         float ray_angle = ns::to_radian(m_player_angle.x - m_fov/2 + (float(i) / float(nb_of_rays)) * m_fov);
-		float ray_cos = std::cos(ray_angle);
-		float ray_sin = std::sin(ray_angle);
+        float ray_cos = std::cos(ray_angle);
+        float ray_sin = std::sin(ray_angle);
         float distance = 0;
         bool hit = false;
 
@@ -254,11 +254,11 @@ void Game::preRender() {
         while (!hit  && distance < m_max_depth) {
             distance += step;
 
-			test.x = m_player_pos.x + ray_cos * distance;
-			test.y = m_player_pos.y + ray_sin * distance;
+            test.x = m_player_pos.x + ray_cos * distance;
+            test.y = m_player_pos.y + ray_sin * distance;
 
-			test_i.x = int(test.x);
-			test_i.y = int(test.y);
+            test_i.x = int(test.x);
+            test_i.y = int(test.y);
 
             // test if outside the map
             if (test_i.x < 0 || test_i.x >= m_map_size.x || test_i.y < 0 || test_i.y >= m_map_size.y) {
@@ -283,7 +283,7 @@ void Game::preRender() {
 
         // store the distance to the middle point in the view
         if (i == nb_of_rays/2)
-			m_midview_distance = distance;
+            m_midview_distance = distance;
 
         distance *= 1.5f;   // gives the feel of bigger space
 
@@ -298,7 +298,7 @@ void Game::preRender() {
                              static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*8))),
                              255});
 
-		auto& lineshape = m_minimap_rays.graphics<ns::ecs::LineShapeComponent>(i)->getDrawable();
+        auto& lineshape = m_minimap_rays.graphics<ns::ecs::LineShapeComponent>(i)->getDrawable();
         lineshape.setPoint(0, m_player_pos*25.f);
         lineshape.setPoint(1, test*25.f);
     }
