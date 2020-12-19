@@ -206,6 +206,7 @@ void Game::onEvent(const sf::Event& event) {
             int dx = event.mouseMove.x - int(getWindow().getAppView().getSize().x/2);
             int dy = event.mouseMove.y - int(getWindow().getAppView().getSize().y/2);
             m_player_angle.x += float(dx);
+            m_player_angle.x = float(int(m_player_angle.x) % 360);
             m_player_angle.y += float(dy)*0.5f;
             m_player_angle.y = std::max(-90.f, std::min(90.f, m_player_angle.y));
             sf::Mouse::setPosition(sf::Vector2i(getWindow().getAppView().getSize()/2.f), getWindow());
