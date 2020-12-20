@@ -22,6 +22,7 @@ public:
 
     sf::RenderTexture m_white_texture;
     std::vector<sf::Sprite> m_quads;
+    ns::VertexArray m_background;
 
     sf::RectangleShape m_hp_bar;
     sf::RectangleShape m_minimap_bg;

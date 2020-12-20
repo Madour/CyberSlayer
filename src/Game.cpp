@@ -1,4 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS     // disable useless warnings when using strcpy 
+#define _CRT_SECURE_NO_WARNINGS     // disable MSVC useless warnings when using strcpy
 
 #include "Game.hpp"
 #include <cstring>
@@ -28,40 +28,10 @@ Game::Game() :
 ns::App("Ray Cast FPS", {1200, 675}, 1),
 m_minimap_player("mini_player")
 {
-    sf::Vector2f res;
-    auto b = lineIntersect({0, 0}, {3, 1}, {1, 0}, {0, -0}, res);
-    ns_LOG(b, res);
-
     ns::Config::debug = false;
-    sf::Mouse::setPosition(sf::Vector2i(getWindow().getAppView().getSize()/2.f), getWindow());
 
     ns_LOG("AppView Size :", getWindow().getAppView().getSize());
     ns_LOG("View Size :", ns::Config::Window::view_size);
-
-    /*
-    m_map = {
-            "###################",
-            "#                 #",
-            "#######           #",
-            "#######           #",
-            "#######           #",
-            "#    #  ### ##### #",
-            "#    #  ######### #",
-            "#    #  ########  #",
-            "#                 #",
-            "###### ############",
-            "###### ############",
-            "###### ############",
-            "###### ############",
-            "###### ############",
-            "#    # #          #",
-            "#      #      #   #",
-            "#    # #      #   #",
-            "###### #### #######",
-            "#                 #",
-            "###################"
-    };
-    */
 
     strcpy(m_map[0],  "###################");
     strcpy(m_map[1],  "#                 #");
@@ -84,36 +54,68 @@ m_minimap_player("mini_player")
     strcpy(m_map[18], "#                 #");
     strcpy(m_map[19], "###################");
 
-    m_map_size = {20, 20};
+    m_map_size = {19, 20};
 
+    // max depth is the length of map's diagonal
     m_max_depth = float(std::hypot(m_map_size.y, m_map_size.x))*1.5f;
+    ns_LOG("Ray cast max depth :", m_max_depth);
+    // field of view 60 degrees
     m_fov = 60.f;
 
-    ns_LOG("Ray cast max depth :", m_max_depth);
+    auto& appview_size = getWindow().getAppView().getSize();
 
-    m_white_texture.create(1, int(getWindow().getAppView().getSize().y));
+    ///////////////////////////////////////////////////////
+    // Main scene drawables
+    m_white_texture.create(1, int(appview_size.y));
     m_white_texture.clear(sf::Color::White);
     m_white_texture.display();
 
-    m_quads.resize(int(getWindow().getAppView().getSize().x));
+    // m_quads contains the pixels columns rendered by rays
+    m_quads.resize(int(appview_size.x));
+    auto* batch = new ns::SpriteBatch("walls");
+    for (auto& quad : m_quads) {
+        quad.setTexture(m_white_texture.getTexture());
+        batch->draw(&quad);
+    }
+    batch->end();
 
     m_player_pos.x = 1.5;
     m_player_pos.y = 1.5;
 
-    // hud drawables
+    m_background.setPrimitiveType(sf::PrimitiveType::Quads);
+    // sky
+    auto sky_color1 = sf::Color(145, 205, 237);
+    auto sky_color2 = sf::Color(70, 124, 153);
+    m_background.append({{0, 0}, sky_color1});
+    m_background.append({{appview_size.x, 0}, sky_color1});
+    m_background.append({{appview_size.x, appview_size.y/2}, sky_color2});
+    m_background.append({{0, appview_size.y/2}, sky_color2});
+    // ground
+    auto ground_color1 = sf::Color(145, 110, 41);
+    auto ground_color2 = sf::Color(64, 48, 17);
+    m_background.append({{0, appview_size.y/2}, ground_color2});
+    m_background.append({{appview_size.x, appview_size.y/2}, ground_color2});
+    m_background.append({{appview_size.x, appview_size.y}, ground_color1});
+    m_background.append({{0, appview_size.y}, ground_color1});
+    ///////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////
+    // HUD drawables
     m_hp_bar.setSize({200, 10});
     m_hp_bar.setPosition(20, 20);
     m_hp_bar.setFillColor(sf::Color::Red);
 
-    m_minimap_bg.setSize({251, 251});
-    m_minimap_bg.setFillColor(sf::Color(25, 25, 0));
-    m_minimap_bg.setPosition(getWindow().getAppView().getSize().x - 251, 0);
+    m_minimap_bg.setSize({253, 253});
+    m_minimap_bg.setFillColor(sf::Color(25, 25, 25));
+    m_minimap_bg.setPosition(appview_size.x - 253, 0);
+    ///////////////////////////////////////////////////////
 
-    // minimap drawables
+    ///////////////////////////////////////////////////////
+    // Minimap drawables
     sf::RectangleShape wall;
     wall.setSize({25, 25});
     m_minimap_texture.create(25 * m_map_size.x, 25 * m_map_size.y);
-    m_minimap_texture.clear();
+    m_minimap_texture.clear(ground_color2);
     for (int y = 0; y < m_map_size.y; ++y) {
         for (int x = 0; x < m_map_size.x; ++x) {
             if (m_map[y][x] == '#'){
@@ -130,8 +132,9 @@ m_minimap_player("mini_player")
     m_minimap_player.addComponent<ns::ecs::CircleShapeComponent>(player_shape);
 
     m_minimap_rays.setPrimitiveType(sf::PrimitiveType::Lines);
-    for (int i = 0; i < int(getWindow().getAppView().getSize().x)*2; ++i) 
+    for (int i = 0; i < int(appview_size.x)*2; ++i)
         m_minimap_rays.append({ {0, 0}, sf::Color::Green });
+    ///////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////
     // create the main scene
@@ -139,13 +142,7 @@ m_minimap_player("mini_player")
     scene->addLayer("bg", 0);
 
     // add drawables to the main scene here
-    auto* batch = new ns::SpriteBatch("walls");
-    for (auto& quad : m_quads) {
-        quad.setTexture(m_white_texture.getTexture());
-        batch->draw(&quad);
-    }
-    batch->end();
-
+    scene->getDefaultLayer()->addRaw(&m_background);
     scene->getDefaultLayer()->add(batch);
 
     // create the main camera
@@ -176,17 +173,21 @@ m_minimap_player("mini_player")
     minimap->getDefaultLayer()->addRaw(&m_minimap_player);
 
     // create the Minimap camera
-    auto* minimap_cam = createCamera("minimap", 2, {0, 0, 25*10, 25*10}, {getWindow().getAppView().getSize().x-250, 0, 250, 250});
+    auto* minimap_cam = createCamera("minimap", 2, {0, 0, 25*10, 25*10}, {appview_size.x-250, 0, 250, 250});
     minimap_cam->lookAt(minimap);
     minimap_cam->follow(m_minimap_player);
     ///////////////////////////////////////////////////////
 
+    ///////////////////////////////////////////////////////
+    // Add debug texts
     ns::DebugTextInterface::font_size = 15;
     ns::DebugTextInterface::outline_thickness = 1;
     ns::DebugTextInterface::outline_color = sf::Color::Black;
     addDebugText<sf::Vector2f>(&m_player_pos, "player_pos :", {0, 0});
     addDebugText<sf::Vector2f>(&m_player_angle, "player_angle :", {0, 20});
     addDebugText<float>(&m_midview_distance, "distance mid view :", {0, 40});
+    ///////////////////////////////////////////////////////
+
 }
 
 void Game::onEvent(const sf::Event& event) {
@@ -240,6 +241,14 @@ void Game::update() {
 }
 
 void Game::preRender() {
+    float horizon = getWindow().getAppView().getSize().y * (0.5f - m_player_angle.y/45.f);
+    // adjust background horizon line
+    m_background[2].position.y = horizon;
+    m_background[3].position.y = horizon;
+    m_background[4].position.y = horizon;
+    m_background[5].position.y = horizon;
+
+    // do ray cast
     int nb_of_rays = int(getWindow().getAppView().getSize().x);
     float step = 0.01f;
     for (int i = 0; i < nb_of_rays; ++i) {
@@ -289,16 +298,15 @@ void Game::preRender() {
 
         distance *= 1.5f;   // gives the feel of bigger space
 
-        float horizon = getWindow().getAppView().getSize().y * (0.5f - m_player_angle.y/45.f);
         float ceiling = horizon - (getWindow().getAppView().getSize().y / distance)*2; // walls are two units high
         float floor = horizon + getWindow().getAppView().getSize().y / distance;
 
         auto& slice = m_quads[i];
         slice.setPosition(float(i), ceiling);
         slice.setScale(1, (floor - ceiling) / getWindow().getAppView().getSize().y);
-        slice.setColor({static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*8))),
-                             static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*8))),
-                             static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*8))),
+        slice.setColor({static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*6))),
+                             static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*6))),
+                             static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*6))),
                              255});
 
         m_minimap_rays[2*i].position = m_minimap_player.getPosition();
