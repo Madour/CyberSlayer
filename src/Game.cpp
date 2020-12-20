@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS     // disable useless warnings when using strcpy 
 
 #include "Game.hpp"
+#include <cstring>
 
 float cross(const sf::Vector2f& v1, const sf::Vector2f& v2) {
     return v1.x * v2.y - v1.y * v2.x;
@@ -201,17 +202,21 @@ void Game::onEvent(const sf::Event& event) {
         if (event.type == sf::Event::MouseMoved) {
             int dx = event.mouseMove.x - int(getWindow().getAppView().getSize().x/2);
             int dy = event.mouseMove.y - int(getWindow().getAppView().getSize().y/2);
-            m_player_angle.x += float(dx);
-            m_player_angle.x = float(int(m_player_angle.x) % 360);
-            m_player_angle.y += float(dy)*0.5f;
+            // angle x between 0 and 359
+            m_player_angle.x += float(dx)*0.5f;
+            auto&& abs_angle_x = std::abs(m_player_angle.x);
+            if (abs_angle_x >= 360)
+                m_player_angle.x -= 360 * m_player_angle.x/abs_angle_x;
+            // angle y between -90 and +90
+            m_player_angle.y += float(dy)*0.5f*0.5f;
             m_player_angle.y = std::max(-90.f, std::min(90.f, m_player_angle.y));
-            sf::Mouse::setPosition(sf::Vector2i(getWindow().getAppView().getSize()/2.f), getWindow());
         }
 }
 
 void Game::update() {
     auto&& player_angle_rad = ns::to_radian(m_player_angle.x);
     sf::Vector2f player_dir{ std::cos(player_angle_rad), std::sin(player_angle_rad) };
+    sf::Mouse::setPosition(sf::Vector2i(getWindow().getAppView().getSize()/2.f), getWindow());
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z)) {
         m_player_pos.x += 0.05f*player_dir.x;
@@ -284,12 +289,12 @@ void Game::preRender() {
 
         distance *= 1.5f;   // gives the feel of bigger space
 
-        float horizon = getWindow().getAppView().getSize().y / 2.f;
-        float ceiling = horizon - getWindow().getAppView().getSize().y / (distance/2.f);
+        float horizon = getWindow().getAppView().getSize().y * (0.5f - m_player_angle.y/45.f);
+        float ceiling = horizon - (getWindow().getAppView().getSize().y / distance)*2; // walls are two units high
         float floor = horizon + getWindow().getAppView().getSize().y / distance;
 
         auto& slice = m_quads[i];
-        slice.setPosition(float(i), ceiling - getWindow().getAppView().getSize().y * m_player_angle.y/45.f);
+        slice.setPosition(float(i), ceiling);
         slice.setScale(1, (floor - ceiling) / getWindow().getAppView().getSize().y);
         slice.setColor({static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*8))),
                              static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*8))),
