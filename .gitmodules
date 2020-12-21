@@ -1,3 +1,4 @@
 [submodule "NasNas"]
 	path = NasNas
 	url = https://github.com/Madour/NasNas
+	update = merge

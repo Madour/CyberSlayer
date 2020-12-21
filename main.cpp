@@ -5,6 +5,14 @@ int main() {
     // load all assets
     ns::Res::load("assets");
 
+    ns::Config::debug.show_fps = true;
+    ns::Config::debug.show_text = true;
+    ns::Config::debug.show_bounds = false;
+
+    ns::Config::Window::vertical_sync = true;
+    ns::Config::Window::update_rate = 60;
+    ns::Config::Window::cursor_visible = false;
+
     // configure some inputs buttons
     ns::Config::Inputs::setButtonKey("droite", sf::Keyboard::Right);
 
