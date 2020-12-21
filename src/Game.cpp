@@ -294,11 +294,11 @@ void Game::preRender() {
         distance *= 1.5f;   // gives the feel of bigger space
 
         float ceiling = horizon - (getWindow().getAppView().getSize().y / distance)*2; // walls are two units high
-        float floor = horizon + getWindow().getAppView().getSize().y / distance;
+        float ground = horizon + getWindow().getAppView().getSize().y / distance;
 
         auto& slice = m_quads[i];
         slice.setPosition(float(i), ceiling);
-        slice.setScale(1, (floor - ceiling) / getWindow().getAppView().getSize().y);
+        slice.setScale(1, (ground - ceiling) / getWindow().getAppView().getSize().y);
         slice.setColor({static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*6))),
                              static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*6))),
                              static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*6))),
