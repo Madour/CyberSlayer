@@ -20,8 +20,7 @@ bool lineIntersect(const sf::Vector2f p1, const sf::Vector2f p2, const sf::Vecto
     return (0 <= t && t <= 1 && 0 <= u && u <= 1);
 }
 
-Game::Game() :
-ns::App("Ray Cast FPS", {1200, 675}, 1)
+Game::Game() : ns::App("Ray Cast FPS", {1200, 675})
 {
     ns::Config::debug = false;
 
