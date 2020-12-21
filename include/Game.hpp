@@ -20,7 +20,7 @@ public:
     sf::Vector2f m_player_angle;
     float m_midview_distance;
 
-    sf::RenderTexture m_white_texture;
+    sf::RenderTexture m_wall_texture;
     std::vector<sf::Sprite> m_quads;
     ns::VertexArray m_background;
 
@@ -28,6 +28,6 @@ public:
     sf::RectangleShape m_minimap_bg;
 
     sf::RenderTexture m_minimap_texture;
-    ns::BaseEntity m_minimap_player;
+    sf::CircleShape m_minimap_player;
     ns::VertexArray m_minimap_rays;
 };

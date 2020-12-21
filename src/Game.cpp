@@ -3,21 +3,17 @@
 #include "Game.hpp"
 #include <cstring>
 
-float cross(const sf::Vector2f& v1, const sf::Vector2f& v2) {
-    return v1.x * v2.y - v1.y * v2.x;
-}
-
 bool lineIntersect(const sf::Vector2f p1, const sf::Vector2f p2, const sf::Vector2f& q1, const sf::Vector2f& q2, sf::Vector2f& intersect) {
     auto p = p2 - p1;
     auto q = q2 - q1;
     auto q1p1 = q1 - p1;
-    auto d = cross(p, q);
+    auto d = ns::cross_product(p, q);
 
     if (d == 0)
         return false;
 
-    auto t = cross(q1p1, q) / d;
-    auto u = cross(-q1p1, p) / -d;
+    auto t = ns::cross_product(q1p1, q) / d;
+    auto u = ns::cross_product(-q1p1, p) / -d;
 
     intersect.x = p1.x + t * p.x;
     intersect.y = p1.y + t * p.y;
@@ -25,8 +21,7 @@ bool lineIntersect(const sf::Vector2f p1, const sf::Vector2f p2, const sf::Vecto
 }
 
 Game::Game() :
-ns::App("Ray Cast FPS", {1200, 675}, 1),
-m_minimap_player("mini_player")
+ns::App("Ray Cast FPS", {1200, 675}, 1)
 {
     ns::Config::debug = false;
 
@@ -66,15 +61,15 @@ m_minimap_player("mini_player")
 
     ///////////////////////////////////////////////////////
     // Main scene drawables
-    m_white_texture.create(1, int(appview_size.y));
-    m_white_texture.clear(sf::Color::White);
-    m_white_texture.display();
+    m_wall_texture.create(1, int(appview_size.y));
+    m_wall_texture.clear(sf::Color::White);
+    m_wall_texture.display();
 
     // m_quads contains the pixels columns rendered by rays
     m_quads.resize(int(appview_size.x));
     auto* batch = new ns::SpriteBatch("walls");
     for (auto& quad : m_quads) {
-        quad.setTexture(m_white_texture.getTexture());
+        quad.setTexture(m_wall_texture.getTexture());
         batch->draw(&quad);
     }
     batch->end();
@@ -126,10 +121,9 @@ m_minimap_player("mini_player")
     }
     m_minimap_texture.display();
 
-    sf::CircleShape player_shape{5.f};
-    player_shape.setOrigin(5.f, 5.f);
-    player_shape.setFillColor(sf::Color::Blue);
-    m_minimap_player.addComponent<ns::ecs::CircleShapeComponent>(player_shape);
+    m_minimap_player.setRadius(5.f);
+    m_minimap_player.setOrigin(5.f, 5.f);
+    m_minimap_player.setFillColor(sf::Color::Blue);
 
     m_minimap_rays.setPrimitiveType(sf::PrimitiveType::Lines);
     for (int i = 0; i < int(appview_size.x)*2; ++i)
@@ -179,7 +173,7 @@ m_minimap_player("mini_player")
     ///////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////
-    // Add debug texts
+    // Add debug texts (F1 to activate debug mode)
     ns::DebugTextInterface::font_size = 15;
     ns::DebugTextInterface::outline_thickness = 1;
     ns::DebugTextInterface::outline_color = sf::Color::Black;
@@ -236,7 +230,7 @@ void Game::update() {
         m_player_pos.x -= 0.05f*player_dir.y;
     }
 
-    m_minimap_player.transform()->setPosition(m_player_pos*25.f);
+    m_minimap_player.setPosition(m_player_pos*25.f);
     getCamera("minimap")->setRotation(m_player_angle.x + 90);
 }
 
@@ -293,6 +287,7 @@ void Game::preRender() {
         }
 
         // store the distance to the middle point in the view
+        // later, we need to store all distances for depth buffer
         if (i == nb_of_rays/2)
             m_midview_distance = distance;
 
