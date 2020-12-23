@@ -318,8 +318,8 @@ void Game::preRender() {
         // gives the feel of bigger space
         distance *= 1.5f;
 
-        float ceiling = horizon - (getWindow().getAppView().getSize().y / distance)*2; // walls are two units high
-        float ground = horizon + getWindow().getAppView().getSize().y / distance;
+        float ceiling = horizon - (getWindow().getAppView().getSize().y / (distance*fov_rad*2)) * 2; // walls are two units high
+        float ground = horizon + getWindow().getAppView().getSize().y / (distance*fov_rad*2);
 
         auto& slice = m_quads[i];
         slice.setPosition(float(i), ceiling);
