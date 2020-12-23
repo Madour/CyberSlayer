@@ -99,6 +99,12 @@ Game::Game() : ns::App("Ray Cast FPS", {1200, 675})
     m_hp_bar.setPosition(20, 20);
     m_hp_bar.setFillColor(sf::Color::Red);
 
+    auto* help_text = new sf::Text("Press B or N to decrease or increase FOV\nPress M to reset FOV to 60 degree", ns::Arial::getFont());
+    help_text->setCharacterSize(15);
+    help_text->setOutlineColor(sf::Color::Black);
+    help_text->setOutlineThickness(1.f);
+    help_text->setPosition((appview_size.x - help_text->getGlobalBounds().width)/2, 10);
+
     m_minimap_bg.setSize({253, 253});
     m_minimap_bg.setFillColor(sf::Color(25, 25, 25));
     m_minimap_bg.setPosition(appview_size.x - 253, 0);
@@ -150,6 +156,7 @@ Game::Game() : ns::App("Ray Cast FPS", {1200, 675})
     // add drawables to the HUD scene here
     //hud->getDefaultLayer()->addRaw(&m_hp_bar);
     hud->getDefaultLayer()->addRaw(&m_minimap_bg);
+    hud->getDefaultLayer()->add(help_text);
 
     // create the HUD camera
     auto* hud_cam = createCamera("hud", 1);
@@ -210,7 +217,9 @@ void Game::onEvent(const sf::Event& event) {
 void Game::update() {
     auto&& player_angle_rad = ns::to_radian(m_player_angle.x);
     sf::Vector2f player_dir{ std::cos(player_angle_rad), std::sin(player_angle_rad) };
-    sf::Mouse::setPosition(sf::Vector2i(getWindow().getAppView().getSize()/2.f), getWindow());
+
+    if (getWindow().hasFocus())
+        sf::Mouse::setPosition(sf::Vector2i(getWindow().getAppView().getSize()/2.f), getWindow());
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z)) {
         m_player_pos.x += 0.05f*player_dir.x;
@@ -229,6 +238,13 @@ void Game::update() {
         m_player_pos.x -= 0.05f*player_dir.y;
     }
 
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::N))
+        m_fov ++;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::B))
+        m_fov --;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
+        m_fov = 60;
+
     m_minimap_player.setPosition(m_player_pos*25.f);
     getCamera("minimap")->setRotation(m_player_angle.x + 90);
 }
@@ -242,13 +258,18 @@ void Game::preRender() {
     m_background[5].position.y = horizon;
 
     // do ray cast
-    int nb_of_rays = int(getWindow().getAppView().getSize().x);
-    float step = 0.01f;
+    auto nb_of_rays = int(getWindow().getAppView().getSize().x);
+    auto player_angle_rad = ns::to_radian(m_player_angle.x);
+    auto fov_rad = ns::to_radian(m_fov);
+    auto projection_distance = float(nb_of_rays/2) / std::tan(fov_rad/2);
+    auto step = 0.01f;
+
     for (int i = 0; i < nb_of_rays; ++i) {
 
-        float ray_angle = ns::to_radian(m_player_angle.x - m_fov/2 + (float(i) / float(nb_of_rays)) * m_fov);
+        float ray_angle = std::atan(float(i-nb_of_rays/2) / projection_distance) + player_angle_rad;
         float ray_cos = std::cos(ray_angle);
         float ray_sin = std::sin(ray_angle);
+
         float distance = 0;
         bool hit = false;
 
@@ -273,9 +294,8 @@ void Game::preRender() {
             else {
                 if (m_map[test_i.y][test_i.x] == '#') {
                     hit = true;
-                    if (distance <= 0.2f)
-                        step = 0.0005f;
-                    else if (distance <= 1.f)
+                    // increase step when we are close to a wall
+                    if (distance <= 2.f)
                         step = 0.001f;
                     else if (distance <= 3.f )
                         step = 0.005f;
@@ -287,10 +307,16 @@ void Game::preRender() {
 
         // store the distance to the middle point in the view
         // later, we need to store all distances for depth buffer
-        if (i == nb_of_rays/2)
+        if (i == nb_of_rays/2) {
             m_midview_distance = distance;
+        }
 
-        distance *= 1.5f;   // gives the feel of bigger space
+        // fish eye correction
+        distance *= std::cos(ray_angle-player_angle_rad);
+        // adjust distance width fov angle
+        distance *= fov_rad/2;
+        // gives the feel of bigger space
+        distance *= 1.5f;
 
         float ceiling = horizon - (getWindow().getAppView().getSize().y / distance)*2; // walls are two units high
         float ground = horizon + getWindow().getAppView().getSize().y / distance;
@@ -298,10 +324,12 @@ void Game::preRender() {
         auto& slice = m_quads[i];
         slice.setPosition(float(i), ceiling);
         slice.setScale(1, (ground - ceiling) / getWindow().getAppView().getSize().y);
-        slice.setColor({static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*6))),
-                             static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*6))),
-                             static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*6))),
-                             255});
+        slice.setColor({
+                               static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*10))),
+                               static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*10))),
+                               static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*10))),
+                               255
+                       });
 
         m_minimap_rays[2*i].position = m_minimap_player.getPosition();
         m_minimap_rays[2*i + 1].position = test * 25.f;
