@@ -18,6 +18,8 @@ int main() {
     ns::Config::Window::vertical_sync = true;
     ns::Config::Window::cursor_visible = false;
 
+    ns::Config::Physics::gravity = 5.f;
+
     // configure some inputs buttons
     ns::Config::Inputs::setButtonKey("droite", sf::Keyboard::Right);
 

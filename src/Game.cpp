@@ -46,17 +46,18 @@ Game::Game() {
     m_wall_texture.clear(sf::Color::White);
     m_wall_texture.display();
 
-    // m_quads contains the pixels columns rendered by rays
-    m_quads.resize(int(appview_size.x));
-    auto* batch = new ns::SpriteBatch("walls");
-    for (auto& quad : m_quads) {
-        quad.setTexture(m_wall_texture.getTexture());
-        batch->draw(&quad);
+    m_walls_quads.setPrimitiveType(sf::PrimitiveType::Quads);
+    for (int i = 0; i < int(appview_size.x); ++i) {
+        m_walls_quads.append({{float(i), 0}});
+        m_walls_quads.append({{float(i+1), 0}});
+        m_walls_quads.append({{float(i+1), appview_size.y}});
+        m_walls_quads.append({{float(i), appview_size.y}});
     }
-    batch->end();
+    m_walls_quads.setTexture(m_level_map.allTilesets()[0]->getTexture());
 
     m_player_pos.x = 1.5;
     m_player_pos.y = 1.5;
+    m_player_pos_z = 0.f;
 
     m_background.setPrimitiveType(sf::PrimitiveType::Quads);
     // sky
@@ -128,7 +129,7 @@ Game::Game() {
 
     // add drawables to the main scene here
     scene->getDefaultLayer()->addRaw(&m_background);
-    scene->getDefaultLayer()->add(batch);
+    scene->getDefaultLayer()->addRaw(&m_walls_quads);
 
     // create the main camera
     auto* camera = createCamera("main", 0);
@@ -226,6 +227,9 @@ void Game::update() {
         m_player_pos.y += 0.05f*player_dir.x;
         m_player_pos.x -= 0.05f*player_dir.y;
     }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+        m_z_vel = 80;
+    }
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::N))
         m_fov ++;
@@ -234,6 +238,10 @@ void Game::update() {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
         m_fov = 60;
 
+    m_z_vel -= ns::Config::Physics::gravity;
+    m_player_pos_z += m_z_vel;
+    if (m_player_pos_z < 0.f)
+        m_player_pos_z = 0.f;
     m_minimap_player.setPosition(m_player_pos*m_tile_size);
     getCamera("minimap")->setRotation(m_player_angle.x + 90);
 }
@@ -253,18 +261,33 @@ void Game::preRender() {
         // gives the feel of bigger space
         auto distance = intersection.distance * 1.5f;
 
-        float ceiling = horizon - (getWindow().getAppView().getSize().y / distance) * 2; // walls are two units high
-        float ground = horizon + getWindow().getAppView().getSize().y / distance;
+        float ceiling = horizon - (getWindow().getAppView().getSize().y / distance) * 2 + m_player_pos_z/distance; // walls are two units high
+        float ground = horizon + getWindow().getAppView().getSize().y / distance + m_player_pos_z/distance;
 
-        auto& slice = m_quads[i];
-        slice.setPosition(float(i), ceiling);
-        slice.setScale(1, (ground - ceiling) / getWindow().getAppView().getSize().y);
-        slice.setColor({
-            static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*2))),
-            static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*2))),
-            static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*2))),
+        m_walls_quads[i*4].position.y = ceiling;
+        m_walls_quads[i*4].texCoords = {intersection.tex_coo, 0};
+        m_walls_quads[i*4+1].position.y = ceiling;
+        m_walls_quads[i*4+1].texCoords = {intersection.tex_coo, 0};
+        m_walls_quads[i*4+2].position.y = ground;
+        m_walls_quads[i*4+2].texCoords = {intersection.tex_coo, 16};
+        m_walls_quads[i*4+3].position.y = ground;
+        m_walls_quads[i*4+3].texCoords = {intersection.tex_coo, 16};
+
+        // light comes from top / north
+        float color_mult = 10;
+        if (intersection.side == Side::Bottom)
+            color_mult = 50;
+        else if (intersection.side != Side::Top)
+            color_mult = 30;
+        sf::Color wall_color = {
+            static_cast<sf::Uint8>(std::max(0.f, 255-(distance + color_mult))),
+            static_cast<sf::Uint8>(std::max(0.f, 255-(distance + color_mult))),
+            static_cast<sf::Uint8>(std::max(0.f, 255-(distance + color_mult))),
             255
-        });
+        };
+        for (int v = 0; v < 4; ++v) {
+            m_walls_quads[i*4+v].color = wall_color;
+        }
 
         // update minimap rays
         m_minimap_rays[2*i].position = m_minimap_player.getPosition();
@@ -273,6 +296,9 @@ void Game::preRender() {
 }
 
 void Game::doRayCast() {
+    auto& walls_tile_layer = m_level_map.getTileLayer("walls");
+    auto& tileset = m_level_map.allTilesets()[0];
+
     auto nb_of_rays = int(getWindow().getAppView().getSize().x);
     auto player_angle_rad = ns::to_radian(m_player_angle.x);
     auto fov_rad = ns::to_radian(m_fov);
@@ -341,6 +367,7 @@ void Game::doRayCast() {
         bool hit = false;
 
         sf::Vector2i test_point_int;
+        bool checking_horizontal;
 
         while ( !hit ) {
             // check intersection with vertical line
@@ -348,12 +375,14 @@ void Game::doRayCast() {
                 test_point = vertical_test;
                 vertical_test += vertical_test_step;
                 vertical_test_dist = ns::norm(vertical_test - m_player_pos);
+                checking_horizontal = false;
             }
-                // check intersection with horizontal line
+            // check intersection with horizontal line
             else {
                 test_point = horizontal_test;
                 horizontal_test += horizontal_test_step;
                 horizontal_test_dist = ns::norm(horizontal_test - m_player_pos);
+                checking_horizontal = true;
             }
 
             test_point_int.x = int(test_point.x);
@@ -366,14 +395,12 @@ void Game::doRayCast() {
                 distance = m_max_depth;
             }
             else {
-                //if (m_map[test_point_int.y][test_point_int.x] == '#') {
-                if (m_level_map.getTileLayer("walls")->getTile(test_point_int.x, test_point_int.y).gid != 0) {
+                if (walls_tile_layer->getTile(test_point_int.x, test_point_int.y).gid != 0) {
                     hit = true;
                     distance = ns::norm(test_point - m_player_pos);
                 }
             }
         }
-
         // fish eye correction
         distance *= std::cos(ray_angle_rad-player_angle_rad);
         // adjust distance width fov angle
@@ -381,5 +408,30 @@ void Game::doRayCast() {
         // store distance in depth buffer
         m_ray_intersection_buffer[i].distance = distance;
         m_ray_intersection_buffer[i].point = test_point;
+        Side side;
+        float u;
+        if (checking_horizontal) {
+            u = test_point.x - std::floor(test_point.x);
+            if (ray_dir.y < 0)
+                side = Side::Bottom;
+            else {
+                side = Side::Top;
+                u = 1-u;
+            }
+        }
+        else {
+            u = test_point.y - std::floor(test_point.y);
+            if (ray_dir.x < 0) {
+                side = Side::Right;
+                u = 1-u;
+            }
+            else {
+                side = Side::Left;
+            }
+        }
+        m_ray_intersection_buffer[i].side = side;
+        auto tile_gid = walls_tile_layer->getTile(test_point_int.x, test_point_int.y).gid;
+        m_ray_intersection_buffer[i].tex_coo = tileset->getTileTextureRect(tile_gid - tileset->firstgid).left+16*u;
+        m_ray_intersection_buffer[i].tile_gid = tile_gid;
     }
 }

@@ -12,6 +12,8 @@ class Game : public ns::App {
         float distance;
         sf::Vector2f point;
         Side side;
+        float tex_coo;
+        int tile_gid;
     };
 public:
     Game();
@@ -28,11 +30,14 @@ public:
 
     float m_fov;
     sf::Vector2f m_player_pos;
+    float m_player_pos_z;
+    float m_z_vel;
     sf::Vector2f m_player_angle;
     std::array<RayHit, WINDOW_WIDTH> m_ray_intersection_buffer;
 
     sf::RenderTexture m_wall_texture;
-    std::vector<sf::Sprite> m_quads;
+    ns::VertexArray m_walls_quads;
+    ns::VertexArray m_sprites_quads;
     ns::VertexArray m_background;
 
     sf::RectangleShape m_hp_bar;
