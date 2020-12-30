@@ -26,31 +26,14 @@ Game::Game() {
     ns_LOG("AppView Size :", getWindow().getAppView().getSize());
     ns_LOG("View Size :", ns::Config::Window::view_size);
 
-    strcpy(m_map[0],  "###################");
-    strcpy(m_map[1],  "#                 #");
-    strcpy(m_map[2],  "#######           #");
-    strcpy(m_map[3],  "#######           #");
-    strcpy(m_map[4],  "#######           #");
-    strcpy(m_map[5],  "#    #  ### ##### #");
-    strcpy(m_map[6],  "#    #  ######### #");
-    strcpy(m_map[7],  "#    #  ########  #");
-    strcpy(m_map[8],  "#                 #");
-    strcpy(m_map[9],  "###### ############");
-    strcpy(m_map[10], "###### ############");
-    strcpy(m_map[11], "###### ############");
-    strcpy(m_map[12], "###### ############");
-    strcpy(m_map[13], "###### ############");
-    strcpy(m_map[14], "#    # #          #");
-    strcpy(m_map[15], "#      #      #   #");
-    strcpy(m_map[16], "#    # #      #   #");
-    strcpy(m_map[17], "###### #### #######");
-    strcpy(m_map[18], "#                 #");
-    strcpy(m_map[19], "###################");
+    m_level_map.loadFromFile("assets/level_test.tmx");
+    m_tile_size = m_level_map.getTileSize().x;
+    m_level_size = m_level_map.getDimension();
 
-    m_map_size = {19, 20};
+    ns_LOG("Level size :", m_level_size, " Tile size :", m_tile_size);
 
     // max depth is the length of map's diagonal
-    m_max_depth = float(std::hypot(m_map_size.y, m_map_size.x))*1.5f;
+    m_max_depth = float(std::hypot(m_level_size.y, m_level_size.x)) * 1.5f;
     ns_LOG("Ray cast max depth :", m_max_depth);
     // field of view 60 degrees
     m_fov = 60.f;
@@ -111,20 +94,6 @@ Game::Game() {
 
     ///////////////////////////////////////////////////////
     // Minimap drawables
-    sf::RectangleShape wall;
-    wall.setSize({25, 25});
-    m_minimap_texture.create(25 * m_map_size.x, 25 * m_map_size.y);
-    m_minimap_texture.clear(ground_color2);
-    for (int y = 0; y < m_map_size.y; ++y) {
-        for (int x = 0; x < m_map_size.x; ++x) {
-            if (m_map[y][x] == '#'){
-                wall.setPosition(float(x*25), float(y*25));
-                m_minimap_texture.draw(wall);
-            }
-        }
-    }
-    m_minimap_texture.display();
-
     m_minimap_player.setRadius(5.f);
     m_minimap_player.setOrigin(5.f, 5.f);
     m_minimap_player.setFillColor(sf::Color::Blue);
@@ -136,19 +105,19 @@ Game::Game() {
         m_minimap_rays[i].color = sf::Color::Red;
 
     // create minimap grid
-    m_minimap_grid.resize(m_map_size.x*m_map_size.y*2);
+    m_minimap_grid.resize(m_level_size.x * m_level_size.y * 2);
     m_minimap_grid.setPrimitiveType(sf::PrimitiveType::Lines);
-    for (int y = 0; y < m_map_size.y; ++y) {
-        m_minimap_grid[y*2].position = {0, y*25.f};
+    for (int y = 0; y < m_level_size.y; ++y) {
+        m_minimap_grid[y*2].position = {0, y*m_tile_size};
         m_minimap_grid[y*2].color = sf::Color::Black;
-        m_minimap_grid[y*2+1].position = {m_map_size.x*25.f, y*25.f};
-        m_minimap_grid[y*2+1].color = sf::Color::Black;
+        m_minimap_grid[y*2 + 1].position = {m_level_size.x * m_tile_size, y * m_tile_size};
+        m_minimap_grid[y*2 + 1].color = sf::Color::Black;
     }
-    for (int x = 0; x < m_map_size.x; ++x) {
-        m_minimap_grid[m_map_size.y*2+x*2].position = {x*25.f, 0};
-        m_minimap_grid[m_map_size.y*2+x*2].color = sf::Color::Black;
-        m_minimap_grid[m_map_size.y*2+x*2+1].position = {x*25.f, m_map_size.y*25.f};
-        m_minimap_grid[m_map_size.y*2+x*2+1].color = sf::Color::Black;
+    for (int x = 0; x < m_level_size.x; ++x) {
+        m_minimap_grid[m_level_size.y*2 + x*2].position = {x * m_tile_size, 0};
+        m_minimap_grid[m_level_size.y*2 + x*2].color = sf::Color::Black;
+        m_minimap_grid[m_level_size.y*2 + x*2 + 1].position = {x * m_tile_size, m_level_size.y * m_tile_size};
+        m_minimap_grid[m_level_size.y*2 + x*2 + 1].color = sf::Color::Black;
     }
     ///////////////////////////////////////////////////////
 
@@ -185,7 +154,8 @@ Game::Game() {
     auto* minimap = createScene("minimap");
 
     // add drawables to the Minimap scene here
-    minimap->getDefaultLayer()->add(new sf::Sprite(m_minimap_texture.getTexture()));
+    //minimap->getDefaultLayer()->add(new sf::Sprite(m_minimap_texture.getTexture()));
+    minimap->getDefaultLayer()->add(m_level_map.getTileLayer("walls"));
     minimap->getDefaultLayer()->addRaw(&m_minimap_rays);
     minimap->getDefaultLayer()->addRaw(&m_minimap_player);
     minimap->getDefaultLayer()->addRaw(&m_minimap_grid);
@@ -194,6 +164,7 @@ Game::Game() {
     auto* minimap_cam = createCamera("minimap", 2, {0, 0, 25*10, 25*10}, {appview_size.x-250, 0, 250, 250});
     minimap_cam->lookAt(minimap);
     minimap_cam->follow(m_minimap_player);
+    minimap_cam->zoom(0.8f);
     ///////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////
@@ -203,7 +174,7 @@ Game::Game() {
     ns::DebugTextInterface::outline_color = sf::Color::Black;
     addDebugText<sf::Vector2f>(&m_player_pos, "player_pos :", {0, 0});
     addDebugText<sf::Vector2f>(&m_player_angle, "player_angle :", {0, 20});
-    addDebugText<float>([&]{return m_depth_buffer[m_depth_buffer.size()/2];}, "distance mid view :", {0, 40});
+    addDebugText<float>([&]{return m_ray_intersection_buffer[m_ray_intersection_buffer.size()/2].distance;}, "distance mid view :", {0, 40});
     addDebugText<float>(&m_fov, "FOV :", {0, 60});
     ///////////////////////////////////////////////////////
 
@@ -263,7 +234,7 @@ void Game::update() {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
         m_fov = 60;
 
-    m_minimap_player.setPosition(m_player_pos*25.f);
+    m_minimap_player.setPosition(m_player_pos*m_tile_size);
     getCamera("minimap")->setRotation(m_player_angle.x + 90);
 }
 
@@ -277,10 +248,10 @@ void Game::preRender() {
 
     doRayCast();
 
-    for (unsigned i = 0; i < m_depth_buffer.size(); ++i) {
-        auto distance = m_depth_buffer[i];
+    for (unsigned i = 0; i < m_ray_intersection_buffer.size(); ++i) {
+        const auto& intersection = m_ray_intersection_buffer[i];
         // gives the feel of bigger space
-        distance *= 1.5f;
+        auto distance = intersection.distance * 1.5f;
 
         float ceiling = horizon - (getWindow().getAppView().getSize().y / distance) * 2; // walls are two units high
         float ground = horizon + getWindow().getAppView().getSize().y / distance;
@@ -294,6 +265,10 @@ void Game::preRender() {
             static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*2))),
             255
         });
+
+        // update minimap rays
+        m_minimap_rays[2*i].position = m_minimap_player.getPosition();
+        m_minimap_rays[2*i + 1].position = intersection.point * m_tile_size;
     }
 }
 
@@ -385,13 +360,14 @@ void Game::doRayCast() {
             test_point_int.y = int(test_point.y);
 
             // test if outside the map
-            if (test_point_int.x < 0 || test_point_int.x >= m_map_size.x
-                || test_point_int.y < 0 || test_point_int.y >= m_map_size.y) {
+            if (test_point_int.x < 0 || test_point_int.x >= m_level_size.x
+                || test_point_int.y < 0 || test_point_int.y >= m_level_size.y) {
                 hit = true;
                 distance = m_max_depth;
             }
             else {
-                if (m_map[test_point_int.y][test_point_int.x] == '#') {
+                //if (m_map[test_point_int.y][test_point_int.x] == '#') {
+                if (m_level_map.getTileLayer("walls")->getTile(test_point_int.x, test_point_int.y).gid != 0) {
                     hit = true;
                     distance = ns::norm(test_point - m_player_pos);
                 }
@@ -403,10 +379,7 @@ void Game::doRayCast() {
         // adjust distance width fov angle
         distance *= fov_rad*fov_rad;
         // store distance in depth buffer
-        m_depth_buffer[i] = distance;
-
-        // update minimap rays
-        m_minimap_rays[2*i].position = m_minimap_player.getPosition();
-        m_minimap_rays[2*i + 1].position = test_point * 25.f;
+        m_ray_intersection_buffer[i].distance = distance;
+        m_ray_intersection_buffer[i].point = test_point;
     }
 }

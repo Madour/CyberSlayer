@@ -7,6 +7,12 @@
 #define WINDOW_HEIGHT 675
 
 class Game : public ns::App {
+    enum class Side { Top, Right, Bottom, Left };
+    struct RayHit {
+        float distance;
+        sf::Vector2f point;
+        Side side;
+    };
 public:
     Game();
     void onEvent(const sf::Event& event) override;
@@ -15,15 +21,15 @@ public:
 
     void doRayCast();
 
-    // m_map[y][x]
-    char m_map[20][33];
-    sf::Vector2i m_map_size;
+    ns::tm::TiledMap m_level_map;
+    float m_tile_size;
+    sf::Vector2u m_level_size;
     float m_max_depth;
 
     float m_fov;
     sf::Vector2f m_player_pos;
     sf::Vector2f m_player_angle;
-    std::array<float, WINDOW_WIDTH> m_depth_buffer;
+    std::array<RayHit, WINDOW_WIDTH> m_ray_intersection_buffer;
 
     sf::RenderTexture m_wall_texture;
     std::vector<sf::Sprite> m_quads;
@@ -32,7 +38,6 @@ public:
     sf::RectangleShape m_hp_bar;
     sf::RectangleShape m_minimap_bg;
 
-    sf::RenderTexture m_minimap_texture;
     sf::CircleShape m_minimap_player;
     ns::VertexArray m_minimap_rays;
     ns::VertexArray m_minimap_grid;
