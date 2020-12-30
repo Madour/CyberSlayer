@@ -3,12 +3,17 @@
 #include <NasNas.h>
 #include <array>
 
+#define WINDOW_WIDTH 1200
+#define WINDOW_HEIGHT 675
+
 class Game : public ns::App {
 public:
     Game();
     void onEvent(const sf::Event& event) override;
     void update() override;
     void preRender() override;
+
+    void doRayCast();
 
     // m_map[y][x]
     char m_map[20][33];
@@ -18,7 +23,7 @@ public:
     float m_fov;
     sf::Vector2f m_player_pos;
     sf::Vector2f m_player_angle;
-    float m_midview_distance;
+    std::array<float, WINDOW_WIDTH> m_depth_buffer;
 
     sf::RenderTexture m_wall_texture;
     std::vector<sf::Sprite> m_quads;
@@ -30,4 +35,5 @@ public:
     sf::RenderTexture m_minimap_texture;
     sf::CircleShape m_minimap_player;
     ns::VertexArray m_minimap_rays;
+    ns::VertexArray m_minimap_grid;
 };
