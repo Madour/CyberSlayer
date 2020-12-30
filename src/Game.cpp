@@ -33,7 +33,7 @@ Game::Game() {
     ns_LOG("Level size :", m_level_size, " Tile size :", m_tile_size);
 
     // max depth is the length of map's diagonal
-    m_max_depth = float(std::hypot(m_level_size.y, m_level_size.x)) * 1.5f;
+    m_max_depth = float(std::hypot(m_level_size.x, m_level_size.y)) * 1.5f;
     ns_LOG("Ray cast max depth :", m_max_depth);
     // field of view 60 degrees
     m_fov = 60.f;
@@ -54,6 +54,9 @@ Game::Game() {
         m_walls_quads.append({{float(i), appview_size.y}});
     }
     m_walls_quads.setTexture(m_level_map.allTilesets()[0]->getTexture());
+
+    m_sprites_quads.setPrimitiveType(sf::PrimitiveType::Quads);
+    m_sprites_quads.setTexture(ns::Res::getTexture("adventurer.png"));
 
     m_player_pos.x = 1.5;
     m_player_pos.y = 1.5;
@@ -89,7 +92,7 @@ Game::Game() {
     help_text->setPosition((appview_size.x - help_text->getGlobalBounds().width)/2, 10);
 
     m_minimap_bg.setSize({253, 253});
-    m_minimap_bg.setFillColor(sf::Color(25, 25, 25));
+    m_minimap_bg.setFillColor(sf::Color(155, 155, 155));
     m_minimap_bg.setPosition(appview_size.x - 253, 0);
     ///////////////////////////////////////////////////////
 
@@ -99,10 +102,40 @@ Game::Game() {
     m_minimap_player.setOrigin(5.f, 5.f);
     m_minimap_player.setFillColor(sf::Color::Blue);
 
+    /*
+    m_enemy.position = {7.5, 6.5};
+    m_enemy.width = 0.6f;
+    m_enemy.visible_start = 1.f;
+    m_enemy.visible_end = 0.f;
+    */
+
+    auto* enemy = new Entity();
+    enemy->setSize({0.3, 0.4});
+    enemy->setPosition(5.5, 10.5);
+    m_level_objects.emplace_back(enemy);
+
+    m_sprite_hits_buffer[enemy].sprite = enemy;
+    m_sprite_hits_buffer[enemy].visible = false;
+    m_sprite_hits_buffer[enemy].t_min = 1.f;
+    m_sprite_hits_buffer[enemy].t_max = 0.f;
+    m_sprite_hits_buffer[enemy].ray_min = WINDOW_WIDTH;
+    m_sprite_hits_buffer[enemy].ray_max = 0;
+
+    m_sprites_quads.append({{0.f, 0.f}});
+    m_sprites_quads.append({{0.f, 0.f}});
+    m_sprites_quads.append({{0.f, 0.f}});
+    m_sprites_quads.append({{0.f, 0.f}});
+
+    m_minimap_enemies.setPrimitiveType(sf::PrimitiveType::Lines);
+    for (const auto& ent : m_level_objects) {
+        m_minimap_enemies.append({{enemy->getPosition()*m_tile_size}, sf::Color::Blue});
+        m_minimap_enemies.append({{enemy->getPosition()*m_tile_size}, sf::Color::Blue});
+    }
+
     m_minimap_rays.setPrimitiveType(sf::PrimitiveType::Lines);
     for (int i = 0; i < int(appview_size.x)*2; ++i)
         m_minimap_rays.append({ {0, 0}, sf::Color::Green });
-    for (int i = m_minimap_rays.getVertexCount()/2-50; i < m_minimap_rays.getVertexCount()/2+50; ++i)
+    for (unsigned i = m_minimap_rays.getVertexCount()/2-50; i < m_minimap_rays.getVertexCount()/2+50; ++i)
         m_minimap_rays[i].color = sf::Color::Red;
 
     // create minimap grid
@@ -130,6 +163,7 @@ Game::Game() {
     // add drawables to the main scene here
     scene->getDefaultLayer()->addRaw(&m_background);
     scene->getDefaultLayer()->addRaw(&m_walls_quads);
+    scene->getDefaultLayer()->addRaw(&m_sprites_quads);
 
     // create the main camera
     auto* camera = createCamera("main", 0);
@@ -160,6 +194,7 @@ Game::Game() {
     minimap->getDefaultLayer()->addRaw(&m_minimap_rays);
     minimap->getDefaultLayer()->addRaw(&m_minimap_player);
     minimap->getDefaultLayer()->addRaw(&m_minimap_grid);
+    minimap->getDefaultLayer()->addRaw(&m_minimap_enemies);
 
     // create the Minimap camera
     auto* minimap_cam = createCamera("minimap", 2, {0, 0, 25*10, 25*10}, {appview_size.x-250, 0, 250, 250});
@@ -175,8 +210,10 @@ Game::Game() {
     ns::DebugTextInterface::outline_color = sf::Color::Black;
     addDebugText<sf::Vector2f>(&m_player_pos, "player_pos :", {0, 0});
     addDebugText<sf::Vector2f>(&m_player_angle, "player_angle :", {0, 20});
-    addDebugText<float>([&]{return m_ray_intersection_buffer[m_ray_intersection_buffer.size()/2].distance;}, "distance mid view :", {0, 40});
+    addDebugText<float>([&]{return m_wall_hits_buffer[m_wall_hits_buffer.size() / 2].distance;}, "distance mid view :", {0, 40});
     addDebugText<float>(&m_fov, "FOV :", {0, 60});
+    addDebugText<sf::Vector2f>([&]{auto&& player_angle_rad = ns::to_radian(m_player_angle.x); return sf::Vector2f(std::cos(player_angle_rad), std::sin(player_angle_rad));}, "Player dir :", {0, 80});
+    addDebugText<float>(&m_player_pos_z, "Player pos Z :", {0, 100});
     ///////////////////////////////////////////////////////
 
 }
@@ -207,7 +244,7 @@ void Game::onEvent(const sf::Event& event) {
 void Game::update() {
     auto&& player_angle_rad = ns::to_radian(m_player_angle.x);
     sf::Vector2f player_dir{ std::cos(player_angle_rad), std::sin(player_angle_rad) };
-
+    bool crouch = false;
     if (getWindow().hasFocus())
         sf::Mouse::setPosition(sf::Vector2i(getWindow().getAppView().getSize()/2.f), getWindow());
 
@@ -230,6 +267,12 @@ void Game::update() {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
         m_z_vel = 80;
     }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) {
+        if (m_z_vel == 0) {
+            m_player_pos_z = 0;
+            crouch = true;
+        }
+    }
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::N))
         m_fov ++;
@@ -240,37 +283,56 @@ void Game::update() {
 
     m_z_vel -= ns::Config::Physics::gravity;
     m_player_pos_z += m_z_vel;
-    if (m_player_pos_z < 0.f)
-        m_player_pos_z = 0.f;
+    if (m_player_pos_z < 400.f) {
+        m_z_vel = 0.f;
+        m_player_pos_z = 400.f;
+    }
+    if (crouch)
+        m_player_pos_z = 200.f;
+
+    for (unsigned i = 0; i < m_level_objects.size(); ++i) {
+        const auto& ent = m_level_objects[i];
+        auto normal = ns::normal(m_player_pos - ent->getPosition()) / ns::norm(m_player_pos - ent->getPosition()) * ent->getSize().x;
+        m_minimap_enemies[i*2].position = (ent->getPosition() - normal/2.f)*m_tile_size;
+        m_minimap_enemies[i*2+1].position = (ent->getPosition() + normal/2.f)*m_tile_size;
+    }
+
+    for (auto& ent : m_level_objects) {
+        ent->update();
+    }
+
     m_minimap_player.setPosition(m_player_pos*m_tile_size);
     getCamera("minimap")->setRotation(m_player_angle.x + 90);
 }
 
 void Game::preRender() {
-    float horizon = getWindow().getAppView().getSize().y * (0.5f - m_player_angle.y/45.f);
+    auto& app_view_size = getWindow().getAppView().getSize();
+    float horizon = app_view_size.y * (0.5f - m_player_angle.y/45.f);
     // adjust background horizon line
     m_background[2].position.y = horizon;
     m_background[3].position.y = horizon;
     m_background[4].position.y = horizon;
     m_background[5].position.y = horizon;
 
+    auto&& player_angle_rad = ns::to_radian(m_player_angle.x);
+    sf::Vector2f player_dir{ std::cos(player_angle_rad), std::sin(player_angle_rad) };
+
     doRayCast();
 
-    for (unsigned i = 0; i < m_ray_intersection_buffer.size(); ++i) {
-        const auto& intersection = m_ray_intersection_buffer[i];
-        // gives the feel of bigger space
-        auto distance = intersection.distance * 1.5f;
+    for (unsigned i = 0; i < m_wall_hits_buffer.size(); ++i) {
+        const auto& intersection = m_wall_hits_buffer[i];
 
-        float ceiling = horizon - (getWindow().getAppView().getSize().y / distance) * 2 + m_player_pos_z/distance; // walls are two units high
-        float ground = horizon + getWindow().getAppView().getSize().y / distance + m_player_pos_z/distance;
+        auto distance = intersection.distance;
+        float ceiling = horizon - (getWindow().getAppView().getSize().y - (m_player_pos_z-app_view_size.y)) / distance;
+        float ground = horizon + (getWindow().getAppView().getSize().y + (m_player_pos_z-app_view_size.y)) / distance;
 
         m_walls_quads[i*4].position.y = ceiling;
-        m_walls_quads[i*4].texCoords = {intersection.tex_coo, 0};
         m_walls_quads[i*4+1].position.y = ceiling;
-        m_walls_quads[i*4+1].texCoords = {intersection.tex_coo, 0};
         m_walls_quads[i*4+2].position.y = ground;
-        m_walls_quads[i*4+2].texCoords = {intersection.tex_coo, 16};
         m_walls_quads[i*4+3].position.y = ground;
+        m_walls_quads[i*4].texCoords = {intersection.tex_coo, 0};
+        m_walls_quads[i*4+1].texCoords = {intersection.tex_coo, 0};
+        m_walls_quads[i*4+2].texCoords = {intersection.tex_coo, 16};
         m_walls_quads[i*4+3].texCoords = {intersection.tex_coo, 16};
 
         // light comes from top / north
@@ -293,16 +355,44 @@ void Game::preRender() {
         m_minimap_rays[2*i].position = m_minimap_player.getPosition();
         m_minimap_rays[2*i + 1].position = intersection.point * m_tile_size;
     }
+    int i = 0;
+    for (auto& [ent, sprite_hit] : m_sprite_hits_buffer) {
+        if (sprite_hit.visible) {
+            auto& ent_size = ent->getSize();
+            auto& ent_tex_rect = ent->getTextureRect();
+            m_sprites_quads[i*4+0].position = {float(sprite_hit.ray_min), horizon + (m_player_pos_z - 2*app_view_size.y*ent_size.y) / sprite_hit.distance};
+            m_sprites_quads[i*4+1].position = {float(sprite_hit.ray_max), horizon + (m_player_pos_z - 2*app_view_size.y*ent_size.y) / sprite_hit.distance};
+            m_sprites_quads[i*4+2].position = {float(sprite_hit.ray_max), horizon + m_player_pos_z / sprite_hit.distance};
+            m_sprites_quads[i*4+3].position = {float(sprite_hit.ray_min), horizon + m_player_pos_z / sprite_hit.distance};
+            m_sprites_quads[i*4+0].texCoords = sf::Vector2f(ent_tex_rect.left + sprite_hit.t_min*ent_tex_rect.width, ent_tex_rect.top);
+            m_sprites_quads[i*4+1].texCoords = sf::Vector2f(ent_tex_rect.left + sprite_hit.t_max*ent_tex_rect.width, ent_tex_rect.top);
+            m_sprites_quads[i*4+2].texCoords = sf::Vector2f(ent_tex_rect.left + sprite_hit.t_max*ent_tex_rect.width, ent_tex_rect.top + ent_tex_rect.height);
+            m_sprites_quads[i*4+3].texCoords = sf::Vector2f(ent_tex_rect.left + sprite_hit.t_min*ent_tex_rect.width, ent_tex_rect.top + ent_tex_rect.height);
+        }
+        else {
+            m_sprites_quads[0].position = sf::Vector2f(0, 0);
+            m_sprites_quads[1].position = sf::Vector2f(0, 0);
+            m_sprites_quads[2].position = sf::Vector2f(0, 0);
+            m_sprites_quads[3].position = sf::Vector2f(0, 0);
+        }
+        ++i;
+        sprite_hit.visible = false;
+        sprite_hit.t_min = 1.f;
+        sprite_hit.t_max = 0.f;
+        sprite_hit.ray_min = WINDOW_WIDTH;
+        sprite_hit.ray_max = 0;
+    }
 }
 
 void Game::doRayCast() {
     auto& walls_tile_layer = m_level_map.getTileLayer("walls");
     auto& tileset = m_level_map.allTilesets()[0];
 
-    auto nb_of_rays = int(getWindow().getAppView().getSize().x);
+    auto nb_of_rays = WINDOW_WIDTH;
     auto player_angle_rad = ns::to_radian(m_player_angle.x);
     auto fov_rad = ns::to_radian(m_fov);
-    auto projection_distance = float(nb_of_rays/2) / std::tan(fov_rad/2);
+    auto projection_distance = (float(nb_of_rays)/2) / std::tan(fov_rad/2);
+
     for (int i = 0; i < nb_of_rays; ++i) {
 
         float ray_angle_rad = std::atan(float(i-nb_of_rays/2) / projection_distance) + player_angle_rad;
@@ -310,10 +400,10 @@ void Game::doRayCast() {
         if (ray_angle_rad < 0) ray_angle_rad += 2*ns::PI;
         if (ray_angle_rad > 2*ns::PI) ray_angle_rad -= 2*ns::PI;
 
-        float ray_cos = std::cos(ray_angle_rad);
-        float ray_sin = std::sin(ray_angle_rad);
-        float ray_tan = std::tan(ray_angle_rad);
-        sf::Vector2f ray_dir{ ray_cos, ray_sin };
+        auto ray_cos = std::cos(ray_angle_rad);
+        auto ray_sin = std::sin(ray_angle_rad);
+        auto ray_tan = std::tan(ray_angle_rad);
+        sf::Vector2f ray_dir{ray_cos, ray_sin};
 
         sf::Vector2f horizontal_test = m_player_pos;
         sf::Vector2f horizontal_test_step;
@@ -362,11 +452,10 @@ void Game::doRayCast() {
         }
 
         sf::Vector2f test_point;
+        sf::Vector2i test_point_int;
 
         float distance = 0;
         bool hit = false;
-
-        sf::Vector2i test_point_int;
         bool checking_horizontal;
 
         while ( !hit ) {
@@ -404,34 +493,59 @@ void Game::doRayCast() {
         // fish eye correction
         distance *= std::cos(ray_angle_rad-player_angle_rad);
         // adjust distance width fov angle
-        distance *= fov_rad*fov_rad;
-        // store distance in depth buffer
-        m_ray_intersection_buffer[i].distance = distance;
-        m_ray_intersection_buffer[i].point = test_point;
+        distance *= fov_rad;
+
+        // find the wall hit side and position
         Side side;
         float u;
         if (checking_horizontal) {
             u = test_point.x - std::floor(test_point.x);
-            if (ray_dir.y < 0)
-                side = Side::Bottom;
-            else {
-                side = Side::Top;
-                u = 1-u;
-            }
+            side = ray_dir.y < 0 ? Side::Bottom : Side::Top;
         }
         else {
             u = test_point.y - std::floor(test_point.y);
-            if (ray_dir.x < 0) {
-                side = Side::Right;
-                u = 1-u;
-            }
-            else {
-                side = Side::Left;
+            side = ray_dir.x < 0 ? Side::Right : Side::Left;
+        }
+        if (side == Side::Top || side == Side::Right)
+            u = 1 - u;
+
+        // find wall tile and texture pos
+        auto tile_gid = walls_tile_layer->getTile(test_point_int.x, test_point_int.y).gid;
+        auto tex_coo = tileset->getTileTextureRect(tile_gid - tileset->firstgid).left + 16 * u;
+
+        // fill all the information
+        auto& wall_hit = m_wall_hits_buffer[i];
+        wall_hit.distance = distance;
+        wall_hit.point = test_point;
+        wall_hit.side = side;
+        wall_hit.tex_coo = tex_coo;
+        wall_hit.tile_gid = tile_gid;
+
+        for (auto& ent_unique : m_level_objects) {
+            auto* ent = ent_unique.get();
+            auto ent_distance = ns::norm(m_player_pos - ent->getPosition())*fov_rad;
+            if (ent_distance < distance) {
+                auto normal = ns::normal(m_player_pos-ent->getPosition())/ent_distance;
+                sf::Vector2f p1 = ent->getPosition() - normal * ent->getSize().x/2.f;
+                sf::Vector2f p2 = ent->getPosition() + normal * ent->getSize().x/2.f;
+                sf::Vector2f p_inter;
+                if (lineIntersect(m_player_pos, test_point, p1, p2, p_inter)) {
+                    auto& sprite_hit = m_sprite_hits_buffer[ent];
+                    sprite_hit.visible = true;
+                    sprite_hit.distance = ent_distance;
+                    // find the intersection point in percentage of entity width (for texture coordinates)
+                    // and find the first and last rays that see the entity (for world position)
+                    auto t = ns::norm(p_inter - p1) / ns::norm(p2 - p1);
+                    if (sprite_hit.t_min > t) {
+                        sprite_hit.t_min = t;
+                        sprite_hit.ray_min = i;
+                    }
+                    if (t > sprite_hit.t_max) {
+                        sprite_hit.t_max = t;
+                        sprite_hit.ray_max = i;
+                    }
+                }
             }
         }
-        m_ray_intersection_buffer[i].side = side;
-        auto tile_gid = walls_tile_layer->getTile(test_point_int.x, test_point_int.y).gid;
-        m_ray_intersection_buffer[i].tex_coo = tileset->getTileTextureRect(tile_gid - tileset->firstgid).left+16*u;
-        m_ray_intersection_buffer[i].tile_gid = tile_gid;
     }
 }
