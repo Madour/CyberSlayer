@@ -9,8 +9,12 @@ int main() {
     ns::Config::debug.show_text = true;
     ns::Config::debug.show_bounds = false;
 
-    ns::Config::Window::vertical_sync = true;
+    ns::Config::Window::title = "RayCast FPS";
+    ns::Config::Window::size = {WINDOW_WIDTH, WINDOW_HEIGHT};
+
     ns::Config::Window::update_rate = 60;
+    ns::Config::Window::framerate_limit = 100;
+    ns::Config::Window::vertical_sync = true;
     ns::Config::Window::cursor_visible = false;
 
     // configure some inputs buttons

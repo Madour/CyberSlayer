@@ -20,8 +20,7 @@ bool lineIntersect(const sf::Vector2f p1, const sf::Vector2f p2, const sf::Vecto
     return (0 <= t && t <= 1 && 0 <= u && u <= 1);
 }
 
-Game::Game() : ns::App("Ray Cast FPS", {1200, 675})
-{
+Game::Game() {
     ns::Config::debug = false;
 
     ns_LOG("AppView Size :", getWindow().getAppView().getSize());
@@ -99,6 +98,12 @@ Game::Game() : ns::App("Ray Cast FPS", {1200, 675})
     m_hp_bar.setPosition(20, 20);
     m_hp_bar.setFillColor(sf::Color::Red);
 
+    auto* help_text = new sf::Text("Press B or N to decrease or increase FOV\nPress M to reset FOV to 60 degree", ns::Arial::getFont());
+    help_text->setCharacterSize(15);
+    help_text->setOutlineColor(sf::Color::Black);
+    help_text->setOutlineThickness(1.f);
+    help_text->setPosition((appview_size.x - help_text->getGlobalBounds().width)/2, 10);
+
     m_minimap_bg.setSize({253, 253});
     m_minimap_bg.setFillColor(sf::Color(25, 25, 25));
     m_minimap_bg.setPosition(appview_size.x - 253, 0);
@@ -127,6 +132,24 @@ Game::Game() : ns::App("Ray Cast FPS", {1200, 675})
     m_minimap_rays.setPrimitiveType(sf::PrimitiveType::Lines);
     for (int i = 0; i < int(appview_size.x)*2; ++i)
         m_minimap_rays.append({ {0, 0}, sf::Color::Green });
+    for (int i = m_minimap_rays.getVertexCount()/2-50; i < m_minimap_rays.getVertexCount()/2+50; ++i)
+        m_minimap_rays[i].color = sf::Color::Red;
+
+    // create minimap grid
+    m_minimap_grid.resize(m_map_size.x*m_map_size.y*2);
+    m_minimap_grid.setPrimitiveType(sf::PrimitiveType::Lines);
+    for (int y = 0; y < m_map_size.y; ++y) {
+        m_minimap_grid[y*2].position = {0, y*25.f};
+        m_minimap_grid[y*2].color = sf::Color::Black;
+        m_minimap_grid[y*2+1].position = {m_map_size.x*25.f, y*25.f};
+        m_minimap_grid[y*2+1].color = sf::Color::Black;
+    }
+    for (int x = 0; x < m_map_size.x; ++x) {
+        m_minimap_grid[m_map_size.y*2+x*2].position = {x*25.f, 0};
+        m_minimap_grid[m_map_size.y*2+x*2].color = sf::Color::Black;
+        m_minimap_grid[m_map_size.y*2+x*2+1].position = {x*25.f, m_map_size.y*25.f};
+        m_minimap_grid[m_map_size.y*2+x*2+1].color = sf::Color::Black;
+    }
     ///////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////
@@ -150,6 +173,7 @@ Game::Game() : ns::App("Ray Cast FPS", {1200, 675})
     // add drawables to the HUD scene here
     //hud->getDefaultLayer()->addRaw(&m_hp_bar);
     hud->getDefaultLayer()->addRaw(&m_minimap_bg);
+    hud->getDefaultLayer()->add(help_text);
 
     // create the HUD camera
     auto* hud_cam = createCamera("hud", 1);
@@ -164,6 +188,7 @@ Game::Game() : ns::App("Ray Cast FPS", {1200, 675})
     minimap->getDefaultLayer()->add(new sf::Sprite(m_minimap_texture.getTexture()));
     minimap->getDefaultLayer()->addRaw(&m_minimap_rays);
     minimap->getDefaultLayer()->addRaw(&m_minimap_player);
+    minimap->getDefaultLayer()->addRaw(&m_minimap_grid);
 
     // create the Minimap camera
     auto* minimap_cam = createCamera("minimap", 2, {0, 0, 25*10, 25*10}, {appview_size.x-250, 0, 250, 250});
@@ -178,7 +203,8 @@ Game::Game() : ns::App("Ray Cast FPS", {1200, 675})
     ns::DebugTextInterface::outline_color = sf::Color::Black;
     addDebugText<sf::Vector2f>(&m_player_pos, "player_pos :", {0, 0});
     addDebugText<sf::Vector2f>(&m_player_angle, "player_angle :", {0, 20});
-    addDebugText<float>(&m_midview_distance, "distance mid view :", {0, 40});
+    addDebugText<float>([&]{return m_depth_buffer[m_depth_buffer.size()/2];}, "distance mid view :", {0, 40});
+    addDebugText<float>(&m_fov, "FOV :", {0, 60});
     ///////////////////////////////////////////////////////
 
 }
@@ -198,9 +224,8 @@ void Game::onEvent(const sf::Event& event) {
             int dy = event.mouseMove.y - int(getWindow().getAppView().getSize().y/2);
             // angle x between 0 and 359
             m_player_angle.x += float(dx)*0.5f;
-            auto&& abs_angle_x = std::abs(m_player_angle.x);
-            if (abs_angle_x >= 360)
-                m_player_angle.x -= 360 * m_player_angle.x/abs_angle_x;
+            if (m_player_angle.x > 360) m_player_angle.x -= 360.f;
+            if (m_player_angle.x < 0) m_player_angle.x += 360.f;
             // angle y between -90 and +90
             m_player_angle.y += float(dy)*0.5f*0.5f;
             m_player_angle.y = std::max(-90.f, std::min(90.f, m_player_angle.y));
@@ -210,7 +235,9 @@ void Game::onEvent(const sf::Event& event) {
 void Game::update() {
     auto&& player_angle_rad = ns::to_radian(m_player_angle.x);
     sf::Vector2f player_dir{ std::cos(player_angle_rad), std::sin(player_angle_rad) };
-    sf::Mouse::setPosition(sf::Vector2i(getWindow().getAppView().getSize()/2.f), getWindow());
+
+    if (getWindow().hasFocus())
+        sf::Mouse::setPosition(sf::Vector2i(getWindow().getAppView().getSize()/2.f), getWindow());
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z)) {
         m_player_pos.x += 0.05f*player_dir.x;
@@ -229,6 +256,13 @@ void Game::update() {
         m_player_pos.x -= 0.05f*player_dir.y;
     }
 
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::N))
+        m_fov ++;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::B))
+        m_fov --;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
+        m_fov = 60;
+
     m_minimap_player.setPosition(m_player_pos*25.f);
     getCamera("minimap")->setRotation(m_player_angle.x + 90);
 }
@@ -241,69 +275,138 @@ void Game::preRender() {
     m_background[4].position.y = horizon;
     m_background[5].position.y = horizon;
 
-    // do ray cast
-    int nb_of_rays = int(getWindow().getAppView().getSize().x);
-    float step = 0.01f;
-    for (int i = 0; i < nb_of_rays; ++i) {
+    doRayCast();
 
-        float ray_angle = ns::to_radian(m_player_angle.x - m_fov/2 + (float(i) / float(nb_of_rays)) * m_fov);
-        float ray_cos = std::cos(ray_angle);
-        float ray_sin = std::sin(ray_angle);
-        float distance = 0;
-        bool hit = false;
+    for (unsigned i = 0; i < m_depth_buffer.size(); ++i) {
+        auto distance = m_depth_buffer[i];
+        // gives the feel of bigger space
+        distance *= 1.5f;
 
-        sf::Vector2f test;
-        sf::Vector2i test_i;
-
-        while (!hit  && distance < m_max_depth) {
-            distance += step;
-
-            test.x = m_player_pos.x + ray_cos * distance;
-            test.y = m_player_pos.y + ray_sin * distance;
-
-            test_i.x = int(test.x);
-            test_i.y = int(test.y);
-
-            // test if outside the map
-            if (test_i.x < 0 || test_i.x >= m_map_size.x || test_i.y < 0 || test_i.y >= m_map_size.y) {
-                hit = true;
-                distance = m_max_depth;
-                step = 0.05f;
-            }
-            else {
-                if (m_map[test_i.y][test_i.x] == '#') {
-                    hit = true;
-                    if (distance <= 0.2f)
-                        step = 0.0005f;
-                    else if (distance <= 1.f)
-                        step = 0.001f;
-                    else if (distance <= 3.f )
-                        step = 0.005f;
-                    else
-                        step = 0.01f;
-                }
-            }
-        }
-
-        // store the distance to the middle point in the view
-        // later, we need to store all distances for depth buffer
-        if (i == nb_of_rays/2)
-            m_midview_distance = distance;
-
-        distance *= 1.5f;   // gives the feel of bigger space
-
-        float ceiling = horizon - (getWindow().getAppView().getSize().y / distance)*2; // walls are two units high
+        float ceiling = horizon - (getWindow().getAppView().getSize().y / distance) * 2; // walls are two units high
         float ground = horizon + getWindow().getAppView().getSize().y / distance;
 
         auto& slice = m_quads[i];
         slice.setPosition(float(i), ceiling);
         slice.setScale(1, (ground - ceiling) / getWindow().getAppView().getSize().y);
-        slice.setColor({static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*6))),
-                             static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*6))),
-                             static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*6))),
-                             255});
+        slice.setColor({
+            static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*2))),
+            static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*2))),
+            static_cast<sf::Uint8>(int(std::max(0.f, 255-distance*2))),
+            255
+        });
+    }
+}
 
+void Game::doRayCast() {
+    auto nb_of_rays = int(getWindow().getAppView().getSize().x);
+    auto player_angle_rad = ns::to_radian(m_player_angle.x);
+    auto fov_rad = ns::to_radian(m_fov);
+    auto projection_distance = float(nb_of_rays/2) / std::tan(fov_rad/2);
+    for (int i = 0; i < nb_of_rays; ++i) {
+
+        float ray_angle_rad = std::atan(float(i-nb_of_rays/2) / projection_distance) + player_angle_rad;
+        // the angle must be between 0 and 2*PI
+        if (ray_angle_rad < 0) ray_angle_rad += 2*ns::PI;
+        if (ray_angle_rad > 2*ns::PI) ray_angle_rad -= 2*ns::PI;
+
+        float ray_cos = std::cos(ray_angle_rad);
+        float ray_sin = std::sin(ray_angle_rad);
+        float ray_tan = std::tan(ray_angle_rad);
+        sf::Vector2f ray_dir{ ray_cos, ray_sin };
+
+        sf::Vector2f horizontal_test = m_player_pos;
+        sf::Vector2f horizontal_test_step;
+        float horizontal_test_dist;
+        // ray is completely horizontal, do not check intersects with x axis
+        if (ray_angle_rad == 0 || ray_angle_rad == ns::PI)
+            horizontal_test_dist = m_max_depth;
+        else {
+            // looking up
+            if (ray_angle_rad > ns::PI) {
+                horizontal_test.y = std::floor(horizontal_test.y)-0.0001;
+                horizontal_test_step.y = -1.f;
+                horizontal_test_step.x = -1/ray_tan;
+            }
+                // looking down
+            else if (ray_angle_rad < ns::PI) {
+                horizontal_test.y = std::ceil(horizontal_test.y);
+                horizontal_test_step.y = 1.f;
+                horizontal_test_step.x = 1/ray_tan;
+            }
+            horizontal_test.x += (horizontal_test.y - m_player_pos.y) / ray_tan;
+            horizontal_test_dist = ns::norm(horizontal_test - m_player_pos);
+        }
+
+        sf::Vector2f vertical_test = m_player_pos;
+        sf::Vector2f vertical_test_step;
+        float vertical_test_dist;
+        // ray is completely vertical, do not check intersects with vertical lines
+        if (ray_angle_rad == ns::PI/2 || ray_angle_rad == 3*ns::PI/2)
+            vertical_test_dist = m_max_depth;
+        else {
+            // looking left
+            if (ns::PI/2 < ray_angle_rad && ray_angle_rad < 3*ns::PI/2) {
+                vertical_test.x = std::floor(vertical_test.x)-0.0001;
+                vertical_test_step.x = -1.f;
+                vertical_test_step.y = -ray_tan;
+            }
+                // looking right
+            else if (ray_angle_rad < ns::PI/2 || ray_angle_rad > 3*ns::PI/2) {
+                vertical_test.x = std::ceil(vertical_test.x);
+                vertical_test_step.x = 1.f;
+                vertical_test_step.y = ray_tan;
+            }
+            vertical_test.y += (vertical_test.x - m_player_pos.x) * ray_tan;
+            vertical_test_dist = ns::norm(vertical_test - m_player_pos);
+        }
+
+        sf::Vector2f test_point;
+
+        float distance = 0;
+        bool hit = false;
+
+        sf::Vector2i test_point_int;
+
+        while ( !hit ) {
+            // check intersection with vertical line
+            if ( vertical_test_dist < horizontal_test_dist ) {
+                test_point = vertical_test;
+                vertical_test += vertical_test_step;
+                vertical_test_dist = ns::norm(vertical_test - m_player_pos);
+            }
+                // check intersection with horizontal line
+            else {
+                test_point = horizontal_test;
+                horizontal_test += horizontal_test_step;
+                horizontal_test_dist = ns::norm(horizontal_test - m_player_pos);
+            }
+
+            test_point_int.x = int(test_point.x);
+            test_point_int.y = int(test_point.y);
+
+            // test if outside the map
+            if (test_point_int.x < 0 || test_point_int.x >= m_map_size.x
+                || test_point_int.y < 0 || test_point_int.y >= m_map_size.y) {
+                hit = true;
+                distance = m_max_depth;
+            }
+            else {
+                if (m_map[test_point_int.y][test_point_int.x] == '#') {
+                    hit = true;
+                    distance = ns::norm(test_point - m_player_pos);
+                }
+            }
+        }
+
+        // fish eye correction
+        distance *= std::cos(ray_angle_rad-player_angle_rad);
+        // adjust distance width fov angle
+        distance *= fov_rad*fov_rad;
+        // store distance in depth buffer
+        m_depth_buffer[i] = distance;
+
+        // update minimap rays
         m_minimap_rays[2*i].position = m_minimap_player.getPosition();
-        m_minimap_rays[2*i + 1].position = test * 25.f;
+        m_minimap_rays[2*i + 1].position = test_point * 25.f;
     }
 }
