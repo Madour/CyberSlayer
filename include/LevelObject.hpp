@@ -5,6 +5,7 @@
 class LevelObject {
 public:
     LevelObject() = default;
+    virtual ~LevelObject() = default;
 
     void setTexture(const sf::Texture& texture);
     auto getTexture() -> const sf::Texture&;
