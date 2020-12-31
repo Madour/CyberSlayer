@@ -10,22 +10,24 @@
 #define WINDOW_HEIGHT 675
 
 class Game : public ns::App {
+private:
+    // private structs used by the ray caster
     enum class Side { Top, Right, Bottom, Left };
     struct WallHit {
-        float distance{};
+        float distance=0.f;
         sf::Vector2f point;
-        Side side{};
-        float tex_coo{};
-        unsigned tile_gid{};
+        Side side=Side::Top;
+        float tex_coo=0.f;
+        unsigned tile_gid=0;
     };
     struct SpriteHit{
-        LevelObject* sprite;
-        float distance{};
-        float t_min{};
-        float t_max{};
-        unsigned ray_min{};
-        unsigned ray_max{};
-        bool visible;
+        LevelObject* sprite=nullptr;
+        float distance=0.f;
+        float t_min=1.f;
+        float t_max=0.f;
+        unsigned ray_min=WINDOW_WIDTH;
+        unsigned ray_max=0;
+        bool visible=false;
     };
 public:
     Game();
@@ -35,34 +37,36 @@ public:
 
     void doRayCast();
 
+    // level data
     ns::tm::TiledMap m_level_map;
     float m_tile_size;
     sf::Vector2u m_level_size;
-    float m_max_depth;
+    std::vector<std::unique_ptr<LevelObject>> m_level_objects;
 
-    SpriteHit m_enemy;
-
-    float m_fov;
+    // camera data
+    sf::Vector2f m_player_angle;
     sf::Vector2f m_player_pos;
     float m_player_pos_z;
     float m_z_vel;
-    sf::Vector2f m_player_angle;
 
+    // ray caster data
+    float m_fov;
+    float m_max_depth;
     std::array<WallHit, WINDOW_WIDTH> m_wall_hits_buffer;
-    std::unordered_map<LevelObject*, SpriteHit> m_sprite_hits_buffer;
+    std::vector<SpriteHit> m_sprite_hits_buffer;
 
-    std::vector<std::unique_ptr<LevelObject>> m_level_objects;
-
-    sf::RenderTexture m_wall_texture;
+    // ray caster drawables
+    ns::VertexArray m_background;
     ns::VertexArray m_walls_quads;
     ns::VertexArray m_sprites_quads;
-    ns::VertexArray m_background;
 
+    // HUD drawables
     sf::RectangleShape m_hp_bar;
     sf::RectangleShape m_minimap_bg;
 
+    // minimap drawables
     sf::CircleShape m_minimap_player;
-    ns::VertexArray m_minimap_enemies;
+    ns::VertexArray m_minimap_entities;
     ns::VertexArray m_minimap_rays;
     ns::VertexArray m_minimap_grid;
 };

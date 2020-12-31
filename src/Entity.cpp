@@ -2,12 +2,14 @@
 
 Entity::Entity() {
     setTexture(ns::Res::getTexture("adventurer.png"));
+
+    // placeholder sprite
     m_spritesheet = std::make_unique<ns::Spritesheet>("adventurer", getTexture());
     auto* idle_anim = new ns::Anim("idle", {});
-    idle_anim->add({{14, 7, 19, 29}, 150});
-    idle_anim->add({{66, 6, 17, 30}, 150});
-    idle_anim->add({{115, 6, 19, 30}, 150});
-    idle_anim->add({{167, 7, 20, 29}, 150});
+    idle_anim->add({{14, 6, 20, 30}, 150});
+    idle_anim->add({{64, 6, 20, 30}, 150});
+    idle_anim->add({{114, 6, 20, 30}, 150});
+    idle_anim->add({{164, 6, 20, 30}, 150});
     idle_anim->loop = true;
     m_spritesheet->addAnim(idle_anim);
 
