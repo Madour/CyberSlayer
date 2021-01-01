@@ -10,7 +10,7 @@ int main() {
     ns::Config::debug.show_bounds = false;
 
     ns::Config::Window::title = "RayCast FPS";
-    ns::Config::Window::size = {WINDOW_WIDTH, WINDOW_HEIGHT};
+    ns::Config::Window::size = {VIEW_WIDTH, VIEW_HEIGHT};
 
     ns::Config::Window::antialiasing = 0;
     ns::Config::Window::update_rate = 60;

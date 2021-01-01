@@ -56,7 +56,7 @@ Game::Game() {
     // Main scene drawables
     // setup walls vertices
     m_walls_quads.setPrimitiveType(sf::PrimitiveType::Quads);
-    for (int i = 0; i < int(appview_size.x); ++i) {
+    for (int i = 0; i < VIEW_WIDTH; ++i) {
         m_walls_quads.append({{float(i), 0}});
         m_walls_quads.append({{float(i+1), 0}});
         m_walls_quads.append({{float(i+1), appview_size.y}});
@@ -68,6 +68,9 @@ Game::Game() {
     m_sprites_quads.setPrimitiveType(sf::PrimitiveType::Quads);
     m_sprites_quads.setTexture(ns::Res::getTexture("adventurer.png"));
     m_sprites_quads.resize(m_level_objects.size()*4);
+
+    m_floor_casting.setPrimitiveType(sf::PrimitiveType::Points);
+    m_floor_casting.resize(5);
 
     // setup background
     m_background.setPrimitiveType(sf::PrimitiveType::Quads);
@@ -117,7 +120,7 @@ Game::Game() {
     }
 
     m_minimap_rays.setPrimitiveType(sf::PrimitiveType::Lines);
-    for (int i = 0; i < int(appview_size.x)*2; ++i)
+    for (int i = 0; i < VIEW_WIDTH*2; ++i)
         m_minimap_rays.append({ {0, 0}, sf::Color::Green });
     for (unsigned i = m_minimap_rays.getVertexCount()/2-50; i < m_minimap_rays.getVertexCount()/2+50; ++i)
         m_minimap_rays[i].color = sf::Color::Red;
@@ -194,10 +197,11 @@ Game::Game() {
     ns::DebugTextInterface::outline_color = sf::Color::Black;
     addDebugText<sf::Vector2f>(&m_player_pos, "player_pos :", {0, 0});
     addDebugText<sf::Vector2f>(&m_player_angle, "player_angle :", {0, 20});
-    addDebugText<float>([&]{return m_wall_hits_buffer[m_wall_hits_buffer.size() / 2].distance;}, "distance mid view :", {0, 40});
+    addDebugText<float>([&]{return m_wall_hits_buffer[m_wall_hits_buffer.size() / 2].distance*VIEW_HEIGHT;}, "distance mid view :", {0, 40});
     addDebugText<float>(&m_fov, "FOV :", {0, 60});
     addDebugText<sf::Vector2f>([&]{auto&& player_angle_rad = ns::to_radian(m_player_angle.x); return sf::Vector2f(std::cos(player_angle_rad), std::sin(player_angle_rad));}, "Player dir :", {0, 80});
     addDebugText<float>(&m_player_pos_z, "Player pos Z :", {0, 100});
+    addDebugText<float>(&m_projection_plane_distance, "Proj plane :", {0, 120});
     ///////////////////////////////////////////////////////
 
 }
@@ -291,12 +295,12 @@ void Game::update() {
 
 void Game::preRender() {
     auto& app_view_size = getWindow().getAppView().getSize();
-    float horizon = app_view_size.y * (0.5f - m_player_angle.y/45.f);
+    m_horizon = app_view_size.y * (0.5f - m_player_angle.y/45.f);
     // adjust background horizon line
-    m_background[2].position.y = horizon;
-    m_background[3].position.y = horizon;
-    m_background[4].position.y = horizon;
-    m_background[5].position.y = horizon;
+    m_background[2].position.y = m_horizon;
+    m_background[3].position.y = m_horizon;
+    m_background[4].position.y = m_horizon;
+    m_background[5].position.y = m_horizon;
 
     auto&& player_angle_rad = ns::to_radian(m_player_angle.x);
     sf::Vector2f player_dir{ std::cos(player_angle_rad), std::sin(player_angle_rad) };
@@ -307,8 +311,14 @@ void Game::preRender() {
         const auto& intersection = m_wall_hits_buffer[i];
 
         auto distance = intersection.distance;
-        float ceiling = horizon - (getWindow().getAppView().getSize().y - (m_player_pos_z-app_view_size.y)) / distance;
-        float ground = horizon + (getWindow().getAppView().getSize().y + (m_player_pos_z-app_view_size.y)) / distance;
+        static float WALL_HEIGHT = VIEW_HEIGHT;
+        auto ratio = m_projection_plane_distance / (distance*WALL_HEIGHT);
+        /*float ground = m_horizon + ratio + (m_player_pos_z - app_view_size.y/2)/distance;
+        auto scale = m_projection_plane_distance*2/distance;
+        float ceiling = ground - scale;*/
+            ns_LOG(m_projection_plane_distance, distance, ratio, WALL_HEIGHT*ratio*0.5f);
+        float ceiling = m_horizon - (WALL_HEIGHT*ratio*0.5f);
+        float ground = m_horizon + (WALL_HEIGHT*ratio*0.5f);
 
         m_walls_quads[i*4+0].position.y = ceiling;
         m_walls_quads[i*4+1].position.y = ceiling;
@@ -346,10 +356,10 @@ void Game::preRender() {
         if (sprite_hit.visible) {
             auto& ent_size = ent->getSize();
             auto& ent_tex_rect = ent->getTextureRect();
-            m_sprites_quads[i*4+0].position = {float(sprite_hit.ray_min), horizon + (m_player_pos_z - 2*app_view_size.y*ent_size.y) / sprite_hit.distance};
-            m_sprites_quads[i*4+1].position = {float(sprite_hit.ray_max), horizon + (m_player_pos_z - 2*app_view_size.y*ent_size.y) / sprite_hit.distance};
-            m_sprites_quads[i*4+2].position = {float(sprite_hit.ray_max), horizon + m_player_pos_z / sprite_hit.distance};
-            m_sprites_quads[i*4+3].position = {float(sprite_hit.ray_min), horizon + m_player_pos_z / sprite_hit.distance};
+            m_sprites_quads[i*4+0].position = {float(sprite_hit.ray_min), m_horizon + (m_player_pos_z - 2*app_view_size.y*ent_size.y) / sprite_hit.distance};
+            m_sprites_quads[i*4+1].position = {float(sprite_hit.ray_max), m_horizon + (m_player_pos_z - 2*app_view_size.y*ent_size.y) / sprite_hit.distance};
+            m_sprites_quads[i*4+2].position = {float(sprite_hit.ray_max), m_horizon + m_player_pos_z / sprite_hit.distance};
+            m_sprites_quads[i*4+3].position = {float(sprite_hit.ray_min), m_horizon + m_player_pos_z / sprite_hit.distance};
             m_sprites_quads[i*4+0].texCoords = sf::Vector2f(ent_tex_rect.left + sprite_hit.t_min*ent_tex_rect.width, ent_tex_rect.top);
             m_sprites_quads[i*4+1].texCoords = sf::Vector2f(ent_tex_rect.left + sprite_hit.t_max*ent_tex_rect.width, ent_tex_rect.top);
             m_sprites_quads[i*4+2].texCoords = sf::Vector2f(ent_tex_rect.left + sprite_hit.t_max*ent_tex_rect.width, ent_tex_rect.top + ent_tex_rect.height);
@@ -365,28 +375,28 @@ void Game::preRender() {
         sprite_hit.visible = false;
         sprite_hit.t_min = 1.f;
         sprite_hit.t_max = 0.f;
-        sprite_hit.ray_min = WINDOW_WIDTH;
+        sprite_hit.ray_min = VIEW_WIDTH;
         sprite_hit.ray_max = 0;
     }
 }
 
 void Game::doRayCast() {
+    auto& app_view_size = getWindow().getAppView().getSize();
     auto& walls_tile_layer = m_level_map.getTileLayer("walls");
     auto& tileset = m_level_map.allTilesets()[0];
 
-    auto nb_of_rays = WINDOW_WIDTH;
     auto player_angle_rad = ns::to_radian(m_player_angle.x);
     auto fov_rad = ns::to_radian(m_fov);
-    auto projection_distance = (float(nb_of_rays)/2) / std::tan(fov_rad/2);
+    m_projection_plane_distance = (app_view_size.x/2) / std::tan(fov_rad/2);
 
     // sort level objects by their distance to player, to get correct depth order
     std::sort(m_level_objects.begin(), m_level_objects.end(), [&](auto& lhs, auto& rhs){
         return ns::norm(m_player_pos - lhs->getPosition()) > ns::norm(m_player_pos - rhs->getPosition());
     });
 
-    for (int i = 0; i < nb_of_rays; ++i) {
+    for (int i = 0; i < VIEW_WIDTH; ++i) {
 
-        float ray_angle_rad = std::atan(float(i-nb_of_rays/2) / projection_distance) + player_angle_rad;
+        float ray_angle_rad = std::atan((float(i)-app_view_size.x/2) / m_projection_plane_distance) + player_angle_rad;
         // the angle must be between 0 and 2*PI
         if (ray_angle_rad < 0) ray_angle_rad += 2*ns::PI;
         if (ray_angle_rad > 2*ns::PI) ray_angle_rad -= 2*ns::PI;
@@ -484,7 +494,7 @@ void Game::doRayCast() {
         // fish eye correction
         distance *= std::cos(ray_angle_rad-player_angle_rad);
         // adjust distance width fov angle
-        distance *= fov_rad;
+        //distance *= fov_rad;
 
         // find the wall hit side and position
         Side side;
@@ -511,6 +521,11 @@ void Game::doRayCast() {
         wall_hit.side = side;
         wall_hit.tex_coo = tex_coo;
         wall_hit.tile_gid = tile_gid;
+
+        /*int ground = int(m_horizon + (app_view_size.y +  (m_player_pos_z-app_view_size.y)) / distance);
+        for (int y = ground; y < VIEW_HEIGHT; ++y) {
+
+        }*/
 
         int spr_hit_index = 0;
         for (auto& ent_unique : m_level_objects) {
