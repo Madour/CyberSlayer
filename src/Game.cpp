@@ -45,15 +45,13 @@ Game::Game() {
 
     // create some Entities
     for (int i = 0; i < 25; ++i) {
-        auto* ent = new Entity();
-        ent->setSize({METER, 1.75f*METER});
-        ent->setPosition(1.5f+std::rand()%18, 1.5f+std::rand()%18);
+        auto* ent = new Adventurer();
+        ent->transform()->setPosition(1.5f+std::rand()%18, 1.5f+std::rand()%18);
         m_level_objects.emplace_back(ent);
     }
     {
-        auto* ent = new Entity();
-        ent->setSize({METER, 1.75f*METER});
-        ent->setPosition(1.1, 1.5);
+        auto* ent = new Adventurer();
+        ent->transform()->setPosition(1.1, 1.5);
         m_level_objects.emplace_back(ent);
     }
     // resize the sprite hit buffer used by the ray caster
