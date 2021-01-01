@@ -6,8 +6,12 @@
 #include "LevelObject.hpp"
 #include "Entity.hpp"
 
-#define VIEW_WIDTH 1200
-#define VIEW_HEIGHT 670
+constexpr int VIEW_WIDTH = 1200;
+constexpr int VIEW_HEIGHT = 670;
+constexpr float VIEW_RATIO = static_cast<float>(VIEW_WIDTH)/static_cast<float>(VIEW_HEIGHT);
+constexpr float METER = 1.f / 4.f;
+constexpr float WALL_HEIGHT = 4*METER;
+constexpr float FOV = 90.f;
 
 class Game : public ns::App {
 private:
@@ -44,12 +48,8 @@ public:
     std::vector<std::unique_ptr<LevelObject>> m_level_objects;
 
     // camera data
-    sf::Vector2f m_player_angle;
-    sf::Vector2f m_player_pos;
     sf::Vector3f m_camera_pos;
-    sf::Vector3f m_camera_rotation;
-    float m_player_pos_z;
-    float m_z_vel;
+    sf::Vector3f m_camera_rot;
     float m_horizon;
     float m_projection_plane_distance;
 
