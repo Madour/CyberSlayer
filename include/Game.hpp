@@ -41,6 +41,8 @@ public:
     ns::tm::TiledMap m_level_map;
     float m_tile_size;
     sf::Vector2u m_level_size;
+
+    Player* m_player;
     std::vector<std::unique_ptr<LevelObject>> m_level_objects;
 
     // camera data
@@ -66,7 +68,6 @@ public:
     sf::RectangleShape m_minimap_bg;
 
     // minimap drawables
-    sf::CircleShape m_minimap_player;
     ns::VertexArray m_minimap_entities;
     ns::VertexArray m_minimap_rays;
     ns::VertexArray m_minimap_grid;

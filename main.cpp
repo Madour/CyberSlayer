@@ -14,14 +14,16 @@ int main() {
 
     ns::Config::Window::antialiasing = 0;
     ns::Config::Window::update_rate = 60;
-    ns::Config::Window::framerate_limit = 100;
+    ns::Config::Window::framerate_limit = 60;
     ns::Config::Window::vertical_sync = true;
     ns::Config::Window::cursor_visible = false;
 
-    ns::Config::Physics::gravity = 5.f;
-
     // configure some inputs buttons
-    ns::Config::Inputs::setButtonKey("droite", sf::Keyboard::Right);
+    ns::Config::Inputs::setButtonKey("up", sf::Keyboard::Z);
+    ns::Config::Inputs::setButtonKey("down", sf::Keyboard::S);
+    ns::Config::Inputs::setButtonKey("left", sf::Keyboard::Q);
+    ns::Config::Inputs::setButtonKey("right", sf::Keyboard::D);
+    ns::Config::Inputs::setButtonKey("jump", sf::Keyboard::Space);
 
     Game g;
     g.run();
