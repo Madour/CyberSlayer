@@ -33,18 +33,21 @@ Game::Game() {
     ns_LOG("Level size :", m_level_size, " Tile size :", m_tile_size);
     ns_LOG("Ray cast max depth :", m_max_depth);
 
-    m_fov = FOV;
 
     // camera/player pos
     m_camera_pos.x = 6.0f*METER;
     m_camera_pos.y = 6.0f*METER;
     m_camera_pos.z = 1.4f*METER;
 
+    m_fov = FOV;
+    m_horizon = VIEW_HEIGHT;
+    m_projection_plane_distance = 0;
+
     // create some Entities
     for (int i = 0; i < 25; ++i) {
         auto* ent = new Entity();
         ent->setSize({METER, 1.75f*METER});
-        ent->setPosition(1.5+std::rand()%18, 1.5+std::rand()%18);
+        ent->setPosition(1.5f+std::rand()%18, 1.5f+std::rand()%18);
         m_level_objects.emplace_back(ent);
     }
     {
@@ -234,7 +237,6 @@ void Game::onEvent(const sf::Event& event) {
 void Game::update() {
     auto&& player_angle_rad = ns::to_radian(m_camera_rot.x);
     sf::Vector2f player_dir{ std::cos(player_angle_rad), std::sin(player_angle_rad) };
-    bool crouch = false;
     if (getWindow().hasFocus())
         sf::Mouse::setPosition(sf::Vector2i(getWindow().getAppView().getSize()/2.f), getWindow());
 
