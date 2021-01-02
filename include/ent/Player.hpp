@@ -10,12 +10,12 @@ public:
 
     void setZ(float z);
     auto getZ() const -> float;
-    auto getEyeHeight() const -> float;
+    auto getEyePos() const -> float;
 
-    void update(const sf::Vector3f& camera_rot);
+    void update() override;
 
 private:
-    float m_eye_height = 1.4*METER;
+    float m_eye_pos;
     bool m_jumping = false;
     float m_z = 0.f;
     float m_z_vel = 0.f;

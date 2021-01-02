@@ -3,6 +3,7 @@
 Player::Player() : LevelObject("Player") {
     setTexture(ns::Res::getTexture("adventurer.png"));
     setSize({METER, 1.75f*METER});
+    m_eye_pos = -1.4f*METER;
 
     m_spritesheet = std::make_unique<ns::Spritesheet>("adventurer", getTexture());
     auto* idle_anim = new ns::Anim("idle", {});
@@ -49,7 +50,7 @@ Player::Player() : LevelObject("Player") {
 
     inputs()->bind(Inputs::getButtonKey("jump"), [&]{
         if (!m_jumping)
-            m_z_vel = 30*METER/UPS;
+            m_z_vel = -30*METER/UPS;
         m_jumping = true;
     });
 }
@@ -62,11 +63,11 @@ auto Player::getZ() const -> float {
     return m_z;
 }
 
-auto Player::getEyeHeight() const -> float {
-    return m_eye_height+m_z;
+auto Player::getEyePos() const -> float {
+    return m_z+m_eye_pos;
 }
 
-void Player::update(const sf::Vector3f& camera_rot) {
+void Player::update() {
     // reset physics
     m_side_walk = 0;
     physics()->setDirectionMagnitude(0);
@@ -74,8 +75,6 @@ void Player::update(const sf::Vector3f& camera_rot) {
     // update inputs
     inputs()->update();
 
-    // update physics
-    physics()->setDirectionAngle(camera_rot.x);
     if (m_side_walk) {
         if (physics()->getDirectionMagnitude() == 0) {
             physics()->setDirectionMagnitude(1);
@@ -96,9 +95,9 @@ void Player::update(const sf::Vector3f& camera_rot) {
 
     // jumping
     if (m_jumping) {
-        m_z_vel -= physics()->getMass() * GRAVITY * METER/UPS;
+        m_z_vel += physics()->getMass() * GRAVITY * METER/UPS;
         m_z += m_z_vel;
-        if (m_z < 0 && m_jumping) {
+        if (m_z > 0 && m_jumping) {
             m_z = 0;
             m_z_vel = 0.f;
             m_jumping = false;

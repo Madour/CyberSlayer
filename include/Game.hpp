@@ -4,6 +4,7 @@
 #include <NasNas.h>
 
 #include "Constants.hpp"
+#include "Camera.hpp"
 #include "LevelObject.hpp"
 #include "ent/Adventurer.hpp"
 #include "ent/Player.hpp"
@@ -14,6 +15,8 @@ private:
     // private structs used by the ray caster
     enum class Side { Top, Right, Bottom, Left };
     struct WallHit {
+        sf::Vector2f ray_dir;
+        float fisheye_correction=1.f;
         float distance=0.f;
         sf::Vector2f point;
         Side side=Side::Top;
@@ -42,17 +45,21 @@ public:
     float m_tile_size;
     sf::Vector2u m_level_size;
 
+    sf::Image m_tileset_image;
+    sf::Vector2u m_tileset_size;
+    const sf::Uint8* m_tileset_pixels;
+
+    ns::FloatRect m_tile_texture_rect[4];
+    std::array<int, 20*20> m_ceiling_layer_tiles{};
+
     Player* m_player;
     std::vector<std::unique_ptr<LevelObject>> m_level_objects;
 
     // camera data
-    sf::Vector3f m_camera_pos;
-    sf::Vector3f m_camera_rot;
+    Camera m_camera;
     float m_horizon;
-    float m_projection_plane_distance;
 
     // ray caster data
-    float m_fov;
     float m_max_depth;
     std::array<WallHit, VIEW_WIDTH> m_wall_hits_buffer;
     std::vector<SpriteHit> m_sprite_hits_buffer;
@@ -61,7 +68,10 @@ public:
     ns::VertexArray m_background;
     ns::VertexArray m_walls_quads;
     ns::VertexArray m_sprites_quads;
-    ns::VertexArray m_floor_ceil_casting;
+    sf::Uint8* m_floor_ceil_pixels;
+    sf::Texture m_floor_ceil_texture;
+    sf::Sprite m_floor_ceil_sprite;
+    //ns::VertexArray m_floor_ceil_casting;
 
     // HUD drawables
     sf::RectangleShape m_hp_bar;
