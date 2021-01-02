@@ -5,6 +5,7 @@
 
 #include "Constants.hpp"
 #include "Camera.hpp"
+#include "Level.hpp"
 #include "LevelObject.hpp"
 #include "ent/Adventurer.hpp"
 #include "ent/Player.hpp"
@@ -41,7 +42,8 @@ public:
     void doRayCast();
 
     // level data
-    ns::tm::TiledMap m_level_map;
+    Level m_level;
+    //ns::tm::TiledMap m_level_map;
     float m_tile_size;
     sf::Vector2u m_level_size;
 

@@ -24,9 +24,12 @@ Game::Game() {
     ns::Config::debug = false;
     auto& appview_size = getWindow().getAppView().getSize();
 
-    m_level_map.loadFromFile("assets/level_test.tmx");
+    //m_level_map.loadFromFile("assets/level_test.tmx");
+    m_level.load("assets/level_test.tmx");
 
-    auto& tileset = m_level_map.allTilesets()[0];
+    auto& tile_map = m_level.getTileMap();
+
+    auto& tileset = tile_map.allTilesets()[0];
     m_tileset_image = tileset->getTexture().copyToImage();
     m_tileset_pixels = m_tileset_image.getPixelsPtr();
     m_tileset_size = tileset->getTexture().getSize();
@@ -34,20 +37,13 @@ Game::Game() {
         m_tile_texture_rect[i] = tileset->getTileTextureRect(i);
     }
 
-    auto& ceil_layer = m_level_map.getTileLayer("ceiling");
-    for (int y = 0; y < 20; ++y) {
-        for (int x = 0; x < 20; ++x)
-            m_ceiling_layer_tiles[x + y*20] = ceil_layer->getTile(x, y).gid;
-
-    }
-
     m_floor_ceil_pixels = new sf::Uint8[VIEW_WIDTH*VIEW_HEIGHT*4];
     for (int i = 0; i < VIEW_HEIGHT*VIEW_WIDTH*4; ++i)
         m_floor_ceil_pixels[i] = 0;
 
 
-    m_tile_size = m_level_map.getTileSize().x;
-    m_level_size = m_level_map.getDimension();
+    m_tile_size = tile_map.getTileSize().x;
+    m_level_size = tile_map.getDimension();
     // max depth is the length of map's diagonal
     m_max_depth = float(std::hypot(m_level_size.x, m_level_size.y)) * 1.5f;
 
@@ -62,7 +58,7 @@ Game::Game() {
     m_horizon = VIEW_HEIGHT;
 
     // create some Entities
-    for (int i = 0; i < 0; ++i) {
+    for (int i = 0; i < 10; ++i) {
         auto* ent = new Adventurer();
         ent->transform()->setPosition(1.5f+std::rand()%18, 1.5f+std::rand()%18);
         m_level_objects.emplace_back(ent);
@@ -80,7 +76,7 @@ Game::Game() {
         m_walls_quads.append({{float(i+1), appview_size.y}});
         m_walls_quads.append({{float(i), appview_size.y}});
     }
-    m_walls_quads.setTexture(m_level_map.allTilesets()[0]->getTexture());
+    m_walls_quads.setTexture(tileset->getTexture());
 
     // adjust sprites vertex array size
     m_sprites_quads.setPrimitiveType(sf::PrimitiveType::Quads);
@@ -199,8 +195,8 @@ Game::Game() {
 
     // add drawables to the Minimap scene here
     //minimap->getDefaultLayer()->add(new sf::Sprite(m_minimap_texture.getTexture()));
-    minimap->getDefaultLayer()->add(m_level_map.getTileLayer("ground"));
-    minimap->getDefaultLayer()->add(m_level_map.getTileLayer("walls"));
+    minimap->getDefaultLayer()->add(tile_map.getTileLayer("ground"));
+    minimap->getDefaultLayer()->add(tile_map.getTileLayer("walls"));
     minimap->getDefaultLayer()->addRaw(&m_minimap_rays);
     minimap->getDefaultLayer()->addRaw(&m_minimap_grid);
     minimap->getDefaultLayer()->addRaw(&m_minimap_entities);
@@ -264,10 +260,7 @@ void Game::update() {
 }
 
 void Game::preRender() {
-    auto& ceil_tile_layer = m_level_map.getTileLayer("ceiling");
-    auto& walls_tile_layer = m_level_map.getTileLayer("walls");
-    auto& ground_tile_layer = m_level_map.getTileLayer("ground");
-    auto& tileset = m_level_map.allTilesets()[0];
+    auto& tileset = m_level.getTileMap().allTilesets()[0];
 
     auto& app_view_size = getWindow().getAppView().getSize();
     m_horizon = app_view_size.y * (0.5f - ns::to_degree(m_camera.getPitch()) / 45.f);
@@ -322,7 +315,7 @@ void Game::preRender() {
                 auto&& tmp = (-m_camera.getPosition3D().z - WALL_HEIGHT) * proj_plane_dist / (y - m_horizon) / wall_hit.fisheye_correction;
                 auto pos = cam_pos2d + wall_hit.ray_dir * tmp;
                 sf::Vector2i pos_i{(int)pos.x, (int)pos.y};
-                auto gid = m_ceiling_layer_tiles[pos_i.x + pos_i.y*20];
+                auto gid = m_level[LevelLayer::Ceiling](pos_i.x, pos_i.y);
                 if (gid == 0)
                     continue;
                 sf::Vector2f uv{pos.x - pos_i.x, pos.y - pos_i.y};
@@ -395,11 +388,11 @@ void Game::preRender() {
 void Game::doRayCast() {
     auto& app_view_size = getWindow().getAppView().getSize();
 
-    auto& ceil_tile_layer = m_level_map.getTileLayer("ceiling");
-    auto& walls_tile_layer = m_level_map.getTileLayer("walls");
-    auto& ground_tile_layer = m_level_map.getTileLayer("ground");
+    auto& ceil_tile_layer = m_level.getTileMap().getTileLayer("ceiling");
+    auto& walls_tile_layer = m_level.getTileMap().getTileLayer("walls");
+    auto& ground_tile_layer = m_level.getTileMap().getTileLayer("ground");
 
-    auto& tileset = m_level_map.allTilesets()[0];
+    auto& tileset = m_level.getTileMap().allTilesets()[0];
 
     const auto& camera_pos2d = m_camera.getPosition2D();
 
