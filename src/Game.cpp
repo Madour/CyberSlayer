@@ -72,8 +72,13 @@ Game::Game() {
     m_sprites_quads.setTexture(ns::Res::getTexture("adventurer.png"));
     m_sprites_quads.resize(m_level_objects.size()*4);
 
-    m_floor_casting.setPrimitiveType(sf::PrimitiveType::Points);
-    m_floor_casting.resize(5);
+    m_floor_ceil_casting.setTexture(ns::Res::getTexture("tileset.png"));
+    m_floor_ceil_casting.setPrimitiveType(sf::PrimitiveType::Points);
+    for (int y = 0; y < VIEW_HEIGHT; ++y) {
+        for (int x = 0; x < VIEW_WIDTH; ++x) {
+            m_floor_ceil_casting.append({{(float)x, (float)y}});
+        }
+    }
 
     // setup background
     m_background.setPrimitiveType(sf::PrimitiveType::Quads);
@@ -120,9 +125,9 @@ Game::Game() {
 
     m_minimap_rays.setPrimitiveType(sf::PrimitiveType::Lines);
     for (int i = 0; i < VIEW_WIDTH*2; ++i)
-        m_minimap_rays.append({ {0, 0}, sf::Color::Green });
+        m_minimap_rays.append({ {0, 0}, sf::Color(0, 255, 0, 30) });
     for (unsigned i = m_minimap_rays.getVertexCount()/2-50; i < m_minimap_rays.getVertexCount()/2+50; ++i)
-        m_minimap_rays[i].color = sf::Color::Red;
+        m_minimap_rays[i].color = sf::Color(255, 0, 0, 30);
 
     // create minimap grid
     m_minimap_grid.resize(m_level_size.x * m_level_size.y * 2);
@@ -148,6 +153,7 @@ Game::Game() {
 
     // add drawables to the main scene here
     scene->getDefaultLayer()->addRaw(&m_background);
+    scene->getDefaultLayer()->addRaw(&m_floor_ceil_casting);
     scene->getDefaultLayer()->addRaw(&m_walls_quads);
     scene->getDefaultLayer()->addRaw(&m_sprites_quads);
 
@@ -176,6 +182,7 @@ Game::Game() {
 
     // add drawables to the Minimap scene here
     //minimap->getDefaultLayer()->add(new sf::Sprite(m_minimap_texture.getTexture()));
+    minimap->getDefaultLayer()->add(m_level_map.getTileLayer("ground"));
     minimap->getDefaultLayer()->add(m_level_map.getTileLayer("walls"));
     minimap->getDefaultLayer()->addRaw(&m_minimap_rays);
     minimap->getDefaultLayer()->addRaw(&m_minimap_grid);
@@ -284,8 +291,8 @@ void Game::preRender() {
         float ceiling = m_horizon - (WALL_HEIGHT - m_camera_pos.z) * ratio;
         float ground = m_horizon + (0 + m_camera_pos.z) * ratio;
 
-        m_walls_quads[i*4+0].position.y = ceiling;
-        m_walls_quads[i*4+1].position.y = ceiling;
+        m_walls_quads[i*4+0].position.y = ceiling-1;
+        m_walls_quads[i*4+1].position.y = ceiling-1;
         m_walls_quads[i*4+2].position.y = ground;
         m_walls_quads[i*4+3].position.y = ground;
         m_walls_quads[i*4+0].texCoords = {wall_hit.tex_coo, 0};
@@ -347,13 +354,21 @@ void Game::preRender() {
 
 void Game::doRayCast() {
     auto& app_view_size = getWindow().getAppView().getSize();
+
+    auto& ceil_tile_layer = m_level_map.getTileLayer("ceiling");
     auto& walls_tile_layer = m_level_map.getTileLayer("walls");
+    auto& ground_tile_layer = m_level_map.getTileLayer("ground");
+
     auto& tileset = m_level_map.allTilesets()[0];
     sf::Vector2f camera_pos2d{m_camera_pos.x, m_camera_pos.y};
 
     auto player_angle_rad = ns::to_radian(m_camera_rot.x);
     auto fov_rad = ns::to_radian(m_fov);
     m_projection_plane_distance = (app_view_size.x/2) / std::tan(fov_rad/2);
+
+    for (unsigned i = 0; i < VIEW_WIDTH*VIEW_HEIGHT; ++i) {
+        m_floor_ceil_casting[i].color = sf::Color::Transparent;
+    }
 
     // sort level objects by their distance to player, to get correct depth order
     std::sort(m_level_objects.begin(), m_level_objects.end(), [&](auto& lhs, auto& rhs){
@@ -495,10 +510,39 @@ void Game::doRayCast() {
         wall_hit.tex_coo = tex_coo;
         wall_hit.tile_gid = tile_gid;
 
-        /*int ground = int(m_horizon + (app_view_size.y +  (m_camera_pos.z-app_view_size.y)) / distance);
-        for (int y = ground; y < VIEW_HEIGHT; ++y) {
-
-        }*/
+        auto ratio = m_projection_plane_distance / wall_hit.distance; // thales
+        float ceiling = m_horizon - (WALL_HEIGHT - m_camera_pos.z) * ratio;
+        float ground = m_horizon + m_camera_pos.z * m_projection_plane_distance / distance;
+        //ns_LOG(distance, m_projection_plane_distance, ground);
+        int start = std::max(0, int(ground));
+        for (int y = 0; y < VIEW_HEIGHT; ++y) {
+            if ( y < ceiling) {
+                auto&& tmp = (m_camera_pos.z - WALL_HEIGHT) * m_projection_plane_distance / (y - m_horizon);
+                auto pos = camera_pos2d + ray_dir*tmp/fisheye_correction;
+                sf::Vector2f pos_i = sf::Vector2f(std::floor(pos.x), std::floor(pos.y));
+                auto gid = ceil_tile_layer->getTile(pos_i.x, pos_i.y).gid;
+                auto uv = pos - pos_i;
+                sf::Vector2f tex_pos{
+                        tileset->getTileTextureRect(gid - tileset->firstgid).left + 16 * uv.x,
+                        tileset->getTileTextureRect(gid - tileset->firstgid).top + 16 * uv.y
+                };
+                m_floor_ceil_casting[i + y * VIEW_WIDTH].texCoords = tex_pos;
+                m_floor_ceil_casting[i + y * VIEW_WIDTH].color = sf::Color::White;
+            }
+            else if (y > ground) {
+                auto&& tmp = m_projection_plane_distance * m_camera_pos.z / (y - m_horizon);
+                auto pos = camera_pos2d + ray_dir*tmp/fisheye_correction;
+                sf::Vector2f pos_i = sf::Vector2f(std::floor(pos.x), std::floor(pos.y));
+                auto gid = ground_tile_layer->getTile(pos_i.x, pos_i.y).gid;
+                auto uv = pos - pos_i;
+                sf::Vector2f tex_pos{
+                        tileset->getTileTextureRect(gid - tileset->firstgid).left + 16 * uv.x,
+                        tileset->getTileTextureRect(gid - tileset->firstgid).top + 16 * uv.y
+                };
+                m_floor_ceil_casting[i + y * VIEW_WIDTH].texCoords = tex_pos;
+                m_floor_ceil_casting[i + y * VIEW_WIDTH].color = sf::Color::White;
+            }
+        }
 
         int spr_hit_index = 0;
         for (auto& ent_unique : m_level_objects) {

@@ -61,7 +61,7 @@ public:
     ns::VertexArray m_background;
     ns::VertexArray m_walls_quads;
     ns::VertexArray m_sprites_quads;
-    ns::VertexArray m_floor_casting;
+    ns::VertexArray m_floor_ceil_casting;
 
     // HUD drawables
     sf::RectangleShape m_hp_bar;
