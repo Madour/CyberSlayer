@@ -43,16 +43,14 @@ public:
 
     // level data
     Level m_level;
-    //ns::tm::TiledMap m_level_map;
-    float m_tile_size;
     sf::Vector2u m_level_size;
 
+    // tileset data
+    float m_tile_size;
     sf::Image m_tileset_image;
-    sf::Vector2u m_tileset_size;
     const sf::Uint8* m_tileset_pixels;
-
+    sf::Vector2u m_tileset_size;
     ns::FloatRect m_tile_texture_rect[4];
-    std::array<int, 20*20> m_ceiling_layer_tiles{};
 
     Player* m_player;
     std::vector<std::unique_ptr<LevelObject>> m_level_objects;
@@ -73,7 +71,6 @@ public:
     sf::Uint8* m_floor_ceil_pixels;
     sf::Texture m_floor_ceil_texture;
     sf::Sprite m_floor_ceil_sprite;
-    //ns::VertexArray m_floor_ceil_casting;
 
     // HUD drawables
     sf::RectangleShape m_hp_bar;
