@@ -2,16 +2,21 @@
 
 
 void Level::Layer::create(int grid_size_x, int grid_size_y) {
-    m_grid_size_x = grid_size_x;
+    m_grid_size.x = grid_size_x;
+    m_grid_size.y = grid_size_y;
+    if (m_tiles != nullptr)
+        delete[](m_tiles);
     m_tiles = new int[grid_size_x*grid_size_y];
 }
 
 Level::Layer::~Layer() {
-    delete(m_tiles);
+    delete[](m_tiles);
 }
 
 auto Level::Layer::operator()(int x, int y) const -> int {
-    return m_tiles[x + y*m_grid_size_x];
+    if (x+y*m_grid_size.x > m_grid_size.x*m_grid_size.y)
+        return 0;
+    return m_tiles[x + y*m_grid_size.x];
 }
 
 Level::Level() = default;

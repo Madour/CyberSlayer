@@ -43,7 +43,7 @@ public:
 
     // level data
     Level m_level;
-    sf::Vector2u m_level_size;
+    sf::Vector2i m_level_size;
 
     // tileset data
     float m_tile_size;

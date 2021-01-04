@@ -3,7 +3,7 @@
 Player::Player() : LevelObject("Player") {
     setTexture(ns::Res::getTexture("adventurer.png"));
     setSize({METER, 1.75f*METER});
-    m_eye_pos = -1.4f*METER;
+    m_eye_pos = -1.6f*METER;
 
     m_spritesheet = std::make_unique<ns::Spritesheet>("adventurer", getTexture());
     auto* idle_anim = new ns::Anim("idle", {});
@@ -27,7 +27,7 @@ Player::Player() : LevelObject("Player") {
     m_anim_player.play(m_spritesheet->getAnim("idle"));
 
     // acceleration, mass, friction
-    addComponent<ns::ecs::PhysicsComponent>(sf::Vector2f(0.8f*METER/UPS, 0.8f*METER/UPS), 1.f, sf::Vector2f(0.1f, 0.1f));
+    addComponent<ns::ecs::PhysicsComponent>(sf::Vector2f(0.5f*METER/UPS, 0.5f*METER/UPS), 1.f, sf::Vector2f(0.1f, 0.1f));
 
     using Inputs = ns::Config::Inputs;
     addComponent<ns::ecs::InputsComponent>();
@@ -50,7 +50,7 @@ Player::Player() : LevelObject("Player") {
 
     inputs()->bind(Inputs::getButtonKey("jump"), [&]{
         if (!m_jumping)
-            m_z_vel = -30*METER/UPS;
+            m_z_vel = -20*METER/UPS;
         m_jumping = true;
     });
 }
@@ -107,7 +107,7 @@ void Player::update() {
     else if (physics()->getDirectionMagnitude() != 0){
         if (m_z_offset_sign == 1) {
             if (m_z < 0.1*METER) {
-                m_z+=0.003;
+                m_z+=0.003f;
             }
             else {
                 m_z_offset_sign = -1;
@@ -115,12 +115,16 @@ void Player::update() {
         }
         else {
             if (m_z > -0.05*METER) {
-                m_z-=0.0025;
+                m_z-=0.0025f;
             }
             else {
                 m_z_offset_sign = 1;
             }
         }
+    }
+    // player is not moving
+    else {
+        m_z = 0;
     }
 
     m_anim_player.update();

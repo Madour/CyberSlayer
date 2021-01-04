@@ -12,13 +12,13 @@ class Level {
 
     struct Layer {
         Layer() = default;
-        void create(int grid_size_x, int grid_size_y);
         ~Layer();
+        void create(int grid_size_x, int grid_size_y);
         auto operator()(int x, int y) const -> int;
     private:
         friend Level;
-        int* m_tiles;
-        int m_grid_size_x;
+        int* m_tiles = nullptr;
+        sf::Vector2i m_grid_size;
     };
 
 public:
