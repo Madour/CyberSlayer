@@ -208,7 +208,7 @@ Game::Game() {
     addDebugText<sf::Vector3f>([&]{return m_camera.getPosition3D()/METER;}, "camera_pos (m):", {0, 0});
     addDebugText<sf::Vector3f>([&]{return m_camera.getRotationDeg();}, "camera_rot :", {0, 20});
     addDebugText<sf::Vector2f>([&]{return sf::Vector2f(std::cos(m_camera.getYaw()), std::sin(m_camera.getYaw()));}, "camera_dir :", {0, 40});
-    addDebugText<float>([&]{return m_wall_hits_buffer[m_wall_hits_buffer.size() / 2].distance/METER;}, "distance mid view (m):", {0, 60});
+    addDebugText<float>([&]{return m_wall_hits_buffer[m_wall_hits_buffer.size() / 2].top().distance/METER;}, "distance mid view (m):", {0, 60});
     addDebugText<float>([&]{return ns::to_degree(m_camera.getFovRad()); }, "FOV :", {0, 80});
     ///////////////////////////////////////////////////////
 
@@ -272,7 +272,7 @@ void Game::preRender() {
 
     memset(m_floor_ceil_pixels, 0, VIEW_WIDTH*VIEW_HEIGHT*4*sizeof(sf::Uint8));
     for (unsigned i = 0; i < m_wall_hits_buffer.size(); ++i) {
-        const auto& wall_hit = m_wall_hits_buffer[i];
+        const auto& wall_hit = m_wall_hits_buffer[i].top();
 
         auto ratio = proj_plane_dist / wall_hit.distance; // thales
         float ceiling = m_horizon - (WALL_HEIGHT + m_camera.getPosition3D().z) * ratio;
@@ -551,7 +551,7 @@ void Game::doRayCast() {
         m_depth_buffer[i] = distance;
 
         // fill all the information
-        auto& wall_hit = m_wall_hits_buffer[i];
+        WallHit wall_hit;
         wall_hit.distance = distance;
         wall_hit.ray_dir = ray_dir;
         wall_hit.fisheye_correction = fisheye_correction;
@@ -559,6 +559,7 @@ void Game::doRayCast() {
         wall_hit.side = side;
         wall_hit.tex_coo = tex_coo;
         wall_hit.tile_gid = tile_gid;
+        m_wall_hits_buffer[i].push(wall_hit);
     }
 
     sf::Vector2f cam_dir{std::cos(cam_angle), std::sin(cam_angle)};

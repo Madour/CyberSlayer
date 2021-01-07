@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <stack>
 #include <NasNas.h>
 
 #include "Constants.hpp"
@@ -62,7 +63,7 @@ public:
     // ray caster data
     float m_max_depth;
     std::array<float, VIEW_WIDTH> m_depth_buffer;
-    std::array<WallHit, VIEW_WIDTH> m_wall_hits_buffer;
+    std::array<std::stack<WallHit>, VIEW_WIDTH> m_wall_hits_buffer;
     std::vector<SpriteHit> m_sprite_hits_buffer;
 
     // ray caster drawables
