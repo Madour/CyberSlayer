@@ -14,9 +14,13 @@ public:
 
     virtual auto getTextureRect() -> const ns::IntRect& = 0;
 
+    void computeDistanceToCamera(const sf::Vector2f& camera_pos);
+    auto getDistanceToCamera() const -> float;
+
 protected:
     const sf::Texture* m_texture = nullptr;
     sf::Vector2f m_size;
+    float m_distance_to_camera = 0.f;
 };
 
 

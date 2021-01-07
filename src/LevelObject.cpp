@@ -21,3 +21,11 @@ void LevelObject::setSize(const sf::Vector2f& size) {
 auto LevelObject::getSize() -> const sf::Vector2f& {
     return m_size;
 }
+
+void LevelObject::computeDistanceToCamera(const sf::Vector2f& camera_pos) {
+    m_distance_to_camera = ns::distance(transform()->getPosition(), camera_pos);
+}
+
+auto LevelObject::getDistanceToCamera() const -> float {
+    return m_distance_to_camera;
+}

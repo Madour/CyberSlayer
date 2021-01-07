@@ -3,7 +3,7 @@
 
 Adventurer::Adventurer() : LevelObject("Adventurer") {
     setTexture(ns::Res::getTexture("adventurer.png"));
-    setSize({METER, 1.75f*METER});
+    setSize({METER, 1.8f*METER});
 
     m_spritesheet = std::make_unique<ns::Spritesheet>("adventurer", getTexture());
     auto* idle_anim = new ns::Anim("idle", {});
