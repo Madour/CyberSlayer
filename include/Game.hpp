@@ -68,7 +68,6 @@ public:
 
     // ray caster drawables
     ns::VertexArray m_background;
-    ns::VertexArray m_walls_quads;
     ns::VertexArray m_sprites_quads;
     sf::Uint8* m_floor_ceil_pixels;
     sf::Texture m_floor_ceil_texture;

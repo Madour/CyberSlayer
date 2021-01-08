@@ -70,15 +70,6 @@ Game::Game() {
     ///////////////////////////////////////////////////////
     // Main scene drawables
     // setup walls vertices
-    m_walls_quads.setPrimitiveType(sf::PrimitiveType::Quads);
-    for (int i = 0; i < VIEW_WIDTH; ++i) {
-        m_walls_quads.append({{float(i), 0}});
-        m_walls_quads.append({{float(i+1), 0}});
-        m_walls_quads.append({{float(i+1), appview_size.y}});
-        m_walls_quads.append({{float(i), appview_size.y}});
-    }
-    m_walls_quads.setTexture(tileset->getTexture());
-
     // adjust sprites vertex array size
     m_sprites_quads.setPrimitiveType(sf::PrimitiveType::Quads);
     m_sprites_quads.setTexture(ns::Res::getTexture("adventurer.png"));
@@ -160,7 +151,6 @@ Game::Game() {
     // add drawables to the main scene here
     scene->getDefaultLayer()->addRaw(&m_background);
     scene->getDefaultLayer()->addRaw(&m_floor_ceil_sprite);
-    scene->getDefaultLayer()->addRaw(&m_walls_quads);
     scene->getDefaultLayer()->addRaw(&m_sprites_quads);
 
     // create the main camera
@@ -208,7 +198,7 @@ Game::Game() {
     addDebugText<sf::Vector3f>([&]{return m_camera.getPosition3D()/METER;}, "camera_pos (m):", {0, 0});
     addDebugText<sf::Vector3f>([&]{return m_camera.getRotationDeg();}, "camera_rot :", {0, 20});
     addDebugText<sf::Vector2f>([&]{return sf::Vector2f(std::cos(m_camera.getYaw()), std::sin(m_camera.getYaw()));}, "camera_dir :", {0, 40});
-    addDebugText<float>([&]{return m_wall_hits_buffer[m_wall_hits_buffer.size() / 2].top().distance/METER;}, "distance mid view (m):", {0, 60});
+    addDebugText<float>([&]{return m_depth_buffer[m_depth_buffer.size() / 2]/METER;}, "distance mid view (m):", {0, 60});
     addDebugText<float>([&]{return ns::to_degree(m_camera.getFovRad()); }, "FOV :", {0, 80});
     ///////////////////////////////////////////////////////
 
@@ -272,103 +262,106 @@ void Game::preRender() {
 
     memset(m_floor_ceil_pixels, 0, VIEW_WIDTH*VIEW_HEIGHT*4*sizeof(sf::Uint8));
     for (unsigned i = 0; i < m_wall_hits_buffer.size(); ++i) {
-        const auto& wall_hit = m_wall_hits_buffer[i].top();
-
-        auto ratio = proj_plane_dist / wall_hit.distance; // thales
-        float ceiling = m_horizon - (WALL_HEIGHT + m_camera.getPosition3D().z) * ratio;
-        float ground = m_horizon +  (0 - m_camera.getPosition3D().z) * ratio;
-
-        m_walls_quads[i*4+0].position.y = ceiling-1;
-        m_walls_quads[i*4+1].position.y = ceiling-1;
-        m_walls_quads[i*4+2].position.y = ground+1;
-        m_walls_quads[i*4+3].position.y = ground+1;
-        m_walls_quads[i*4+0].texCoords = {wall_hit.tex_coo, 0};
-        m_walls_quads[i*4+1].texCoords = {wall_hit.tex_coo, 0};
-        m_walls_quads[i*4+2].texCoords = {wall_hit.tex_coo, 16};
-        m_walls_quads[i*4+3].texCoords = {wall_hit.tex_coo, 16};
-
-        // global light comes from top/north
-        float color_mult = 10;
-        if (wall_hit.side == Side::Bottom)
-            color_mult = 50;
-        else if (wall_hit.side != Side::Top)
-            color_mult = 30;
-        sf::Color wall_color = {
-                static_cast<sf::Uint8>(std::max(0.f, 255-(wall_hit.distance*5.f + color_mult))),
-                static_cast<sf::Uint8>(std::max(0.f, 255-(wall_hit.distance*5.f + color_mult))),
-                static_cast<sf::Uint8>(std::max(0.f, 255-(wall_hit.distance*5.f + color_mult))),
-                255
-        };
-        // update color
-        for (int v = 0; v < 4; ++v) {
-            m_walls_quads[i*4+v].color = wall_color;
-        }
-
-        float grnd_ceil_dist;
-        sf::Vector2f pos;
-        sf::Vector2i pos_i;
-        int gid;
-        sf::Vector2f uv;
-        sf::Vector2i tex_pos;
-        const sf::Uint8* texture_pix;
-        int index;
-        auto& cam_pos2d = m_camera.getPosition2D();
-        float ceil_ratio = (-m_camera.getPosition3D().z - WALL_HEIGHT) * proj_plane_dist / wall_hit.fisheye_correction;
-        float ground_ratio = -m_camera.getPosition3D().z * proj_plane_dist / wall_hit.fisheye_correction;
-        for (int y = 0; y < VIEW_HEIGHT; y+=1) {
-            if ( y < ceiling) {
-                grnd_ceil_dist = ceil_ratio / (y - m_horizon);
-                pos.x = cam_pos2d.x + wall_hit.ray_dir.x * grnd_ceil_dist;
-                pos.y = cam_pos2d.y + wall_hit.ray_dir.y * grnd_ceil_dist;
-                pos_i.x = (int)pos.x;
-                pos_i.y = (int)pos.y;
-                gid = m_level[LevelLayer::Ceiling](pos_i.x, pos_i.y);
-                if (gid == 0)
+        bool first = true;
+        while (!m_wall_hits_buffer[i].empty()) {
+            const auto& wall_hit = m_wall_hits_buffer[i].top();
+            auto ratio = proj_plane_dist / wall_hit.distance; // thales
+            float ceiling = m_horizon - (WALL_HEIGHT + m_camera.getPosition3D().z) * ratio;
+            float ground = m_horizon +  (0 - m_camera.getPosition3D().z) * ratio;
+            int index;
+            for (int y = ceiling; y < ground; y += 1) {
+                if ( y < 0 || y >= VIEW_HEIGHT)
                     continue;
-                auto& tex_rect = m_tile_texture_rect[gid - firstgid];
-                uv.x = pos.x - pos_i.x;
-                uv.y = pos.y - pos_i.y;
-                tex_pos.x = static_cast<int>(tex_rect.left + 16 * uv.x);
-                tex_pos.y = static_cast<int>(tex_rect.top + 16 * uv.y);
-                texture_pix = m_tileset_pixels+(tex_pos.x + tex_pos.y*m_tileset_size.x)*4;
+                auto tex_x = static_cast<int>(wall_hit.tex_coo);
+                auto tex_y = static_cast<int>((y-ceiling) / (ground-ceiling)*16);
+                auto texture_pix = m_tileset_pixels+(tex_x + tex_y*m_tileset_size.x)*4;
                 index = (y*VIEW_WIDTH + i) * 4;
-                color_mult = std::max(1.2f, grnd_ceil_dist/6);
-                m_floor_ceil_pixels[index + 0] = static_cast<sf::Uint8>((float)texture_pix[0]/color_mult);
-                m_floor_ceil_pixels[index + 1] = static_cast<sf::Uint8>((float)texture_pix[1]/color_mult);
-                m_floor_ceil_pixels[index + 2] = static_cast<sf::Uint8>((float)texture_pix[2]/color_mult);
-                m_floor_ceil_pixels[index + 3] = texture_pix[3];
+                if(texture_pix[3] > 0) {
+                    // global light comes from top/north
+                    float color_mult = 1.f;
+                    if (wall_hit.side == Side::Bottom)
+                        color_mult += 0.2f;
+                    else if (wall_hit.side != Side::Top)
+                        color_mult += 0.1f;
+                    color_mult += wall_hit.distance*3/m_max_depth;
+                    m_floor_ceil_pixels[index + 0] = static_cast<sf::Uint8>((float)texture_pix[0]/(color_mult));
+                    m_floor_ceil_pixels[index + 1] = static_cast<sf::Uint8>((float)texture_pix[1]/(color_mult));
+                    m_floor_ceil_pixels[index + 2] = static_cast<sf::Uint8>((float)texture_pix[2]/(color_mult));
+                    m_floor_ceil_pixels[index + 3] = texture_pix[3];
+                }
             }
-            else if (ceiling < y && y < ground) {
-                y = static_cast<int>(ground);
-            }
-            else if (y >= ground) {
-                grnd_ceil_dist = ground_ratio / (y - m_horizon);
-                pos.x = cam_pos2d.x + wall_hit.ray_dir.x * grnd_ceil_dist;
-                pos.y = cam_pos2d.y + wall_hit.ray_dir.y * grnd_ceil_dist;
-                pos_i.x = (int)pos.x;
-                pos_i.y = (int)pos.y;
-                gid = m_level[LevelLayer::Ground](pos_i.x, pos_i.y);
-                if (gid == 0)
-                    continue;
-                auto& tex_rect = m_tile_texture_rect[gid - firstgid];
-                uv.x = pos.x - pos_i.x;
-                uv.y = pos.y - pos_i.y;
-                tex_pos.x = static_cast<int>(tex_rect.left + 16 * uv.x);
-                tex_pos.y = static_cast<int>(tex_rect.top + 16 * uv.y);
-                texture_pix = m_tileset_pixels+(tex_pos.x + tex_pos.y*m_tileset_size.x)*4;
-                index = (y*VIEW_WIDTH + i) * 4;
-                color_mult = std::max(1.2f, grnd_ceil_dist/6);
-                m_floor_ceil_pixels[index + 0] = static_cast<sf::Uint8>((float)texture_pix[0]/color_mult);
-                m_floor_ceil_pixels[index + 1] = static_cast<sf::Uint8>((float)texture_pix[1]/color_mult);
-                m_floor_ceil_pixels[index + 2] = static_cast<sf::Uint8>((float)texture_pix[2]/color_mult);
-                m_floor_ceil_pixels[index + 3] = texture_pix[3];
-            }
-        }
 
-        // update minimap rays
-        m_minimap_rays[2*i].position = m_camera.getPosition2D()*m_tile_size;
-        m_minimap_rays[2*i + 1].position = wall_hit.point * m_tile_size;
+            if (first) {
+                first = false;
+                float grnd_ceil_dist;
+                sf::Vector2f pos;
+                sf::Vector2i pos_i;
+                int gid;
+                sf::Vector2f uv;
+                sf::Vector2i tex_pos;
+                const sf::Uint8* texture_pix;
+                int index;
+                auto& cam_pos2d = m_camera.getPosition2D();
+                float ceil_ratio = (-m_camera.getPosition3D().z - WALL_HEIGHT) * proj_plane_dist / wall_hit.fisheye_correction;
+                float ground_ratio = -m_camera.getPosition3D().z * proj_plane_dist / wall_hit.fisheye_correction;
+                for (int y = 0; y < VIEW_HEIGHT; y+=1) {
+                    if ( y < ceiling) {
+                        grnd_ceil_dist = ceil_ratio / (y - m_horizon);
+                        pos.x = cam_pos2d.x + wall_hit.ray_dir.x * grnd_ceil_dist;
+                        pos.y = cam_pos2d.y + wall_hit.ray_dir.y * grnd_ceil_dist;
+                        pos_i.x = (int)pos.x;
+                        pos_i.y = (int)pos.y;
+                        gid = m_level[LevelLayer::Ceiling](pos_i.x, pos_i.y);
+                        if (gid == 0)
+                            continue;
+                        auto& tex_rect = m_tile_texture_rect[gid - firstgid];
+                        uv.x = pos.x - pos_i.x;
+                        uv.y = pos.y - pos_i.y;
+                        tex_pos.x = static_cast<int>(tex_rect.left + 16 * uv.x);
+                        tex_pos.y = static_cast<int>(tex_rect.top + 16 * uv.y);
+                        texture_pix = m_tileset_pixels+(tex_pos.x + tex_pos.y*m_tileset_size.x)*4;
+                        index = (y*VIEW_WIDTH + i) * 4;
+                        float color_mult = std::max(1.2f, grnd_ceil_dist/6);
+                        m_floor_ceil_pixels[index + 0] = static_cast<sf::Uint8>((float)texture_pix[0]/color_mult);
+                        m_floor_ceil_pixels[index + 1] = static_cast<sf::Uint8>((float)texture_pix[1]/color_mult);
+                        m_floor_ceil_pixels[index + 2] = static_cast<sf::Uint8>((float)texture_pix[2]/color_mult);
+                        m_floor_ceil_pixels[index + 3] = texture_pix[3];
+                    }
+                    else if (ceiling < y && y < ground) {
+                        y = static_cast<int>(ground);
+                    }
+                    else if (y >= ground) {
+                        grnd_ceil_dist = ground_ratio / (y - m_horizon);
+                        pos.x = cam_pos2d.x + wall_hit.ray_dir.x * grnd_ceil_dist;
+                        pos.y = cam_pos2d.y + wall_hit.ray_dir.y * grnd_ceil_dist;
+                        pos_i.x = (int)pos.x;
+                        pos_i.y = (int)pos.y;
+                        gid = m_level[LevelLayer::Ground](pos_i.x, pos_i.y);
+                        if (gid == 0)
+                            continue;
+                        auto& tex_rect = m_tile_texture_rect[gid - firstgid];
+                        uv.x = pos.x - pos_i.x;
+                        uv.y = pos.y - pos_i.y;
+                        tex_pos.x = static_cast<int>(tex_rect.left + 16 * uv.x);
+                        tex_pos.y = static_cast<int>(tex_rect.top + 16 * uv.y);
+                        texture_pix = m_tileset_pixels+(tex_pos.x + tex_pos.y*m_tileset_size.x)*4;
+                        index = (y*VIEW_WIDTH + i) * 4;
+                        float color_mult = std::max(1.2f, grnd_ceil_dist/6);
+                        m_floor_ceil_pixels[index + 0] = static_cast<sf::Uint8>((float)texture_pix[0]/color_mult);
+                        m_floor_ceil_pixels[index + 1] = static_cast<sf::Uint8>((float)texture_pix[1]/color_mult);
+                        m_floor_ceil_pixels[index + 2] = static_cast<sf::Uint8>((float)texture_pix[2]/color_mult);
+                        m_floor_ceil_pixels[index + 3] = texture_pix[3];
+                    }
+                }
+
+                // update minimap rays
+                m_minimap_rays[2*i].position = m_camera.getPosition2D()*m_tile_size;
+                m_minimap_rays[2*i + 1].position = wall_hit.point * m_tile_size;
+            }
+            m_wall_hits_buffer[i].pop();
+        }
     }
+
     m_floor_ceil_texture.update(m_floor_ceil_pixels);
 
     int i = 0;
@@ -484,6 +477,7 @@ void Game::doRayCast() {
 
         float distance = 0;
         bool hit = false;
+        bool update_depth = true;
         bool checking_horizontal;
 
         while ( !hit ) {
@@ -514,52 +508,60 @@ void Game::doRayCast() {
             else {
                 if (m_level[LevelLayer::Walls](test_point_int.x, test_point_int.y) != 0) {
                     hit = true;
-                    distance += ns::distance(camera_pos2d, test_point);
+                    distance = ns::distance(camera_pos2d, test_point);
+
+                    // fish eye correction
+                    auto fisheye_correction = std::cos(ray_angle_rad-cam_angle);
+                    distance *= fisheye_correction;
+
+                    // find the wall hit side and position
+                    Side side;
+                    float u;
+                    if (checking_horizontal) {
+                        u = test_point.x - std::floor(test_point.x);
+                        side = ray_dir.y < 0 ? Side::Bottom : Side::Top;
+                    }
+                    else {
+                        u = test_point.y - std::floor(test_point.y);
+                        side = ray_dir.x < 0 ? Side::Right : Side::Left;
+                    }
+                    if (side == Side::Top || side == Side::Right)
+                        u = 1 - u;
+
+                    // find wall tile and texture pos
+                    unsigned tile_gid;
+                    float tex_coo;
+                    if (distance < m_max_depth) {
+                        tile_gid = m_level[LevelLayer::Walls](test_point_int.x, test_point_int.y);
+                        tex_coo = m_tile_texture_rect[tile_gid-firstgid].left + 16 * u;
+                    }
+                    else {
+                        tile_gid = 0;
+                        tex_coo = 0.f;
+                    }
+                    // fill depth buffer
+                    if (update_depth)
+                        m_depth_buffer[i] = distance;
+                    // fill all the information
+                    WallHit wall_hit;
+                    wall_hit.distance = distance;
+                    wall_hit.ray_dir = ray_dir;
+                    wall_hit.fisheye_correction = fisheye_correction;
+                    wall_hit.point = test_point;
+                    wall_hit.side = side;
+                    wall_hit.tex_coo = tex_coo;
+                    wall_hit.tile_gid = tile_gid;
+                    m_wall_hits_buffer[i].push(wall_hit);
+
+                    if (m_level[LevelLayer::Walls](test_point_int.x, test_point_int.y) == 3) {
+                        hit = false;
+                        if (m_tileset_image.getPixel(tex_coo, 8).a != 0)
+                            update_depth = false;
+                    }
                 }
             }
         }
-        // fish eye correction
-        auto fisheye_correction = std::cos(ray_angle_rad-cam_angle);
-        distance *= fisheye_correction;
 
-        // find the wall hit side and position
-        Side side;
-        float u;
-        if (checking_horizontal) {
-            u = test_point.x - std::floor(test_point.x);
-            side = ray_dir.y < 0 ? Side::Bottom : Side::Top;
-        }
-        else {
-            u = test_point.y - std::floor(test_point.y);
-            side = ray_dir.x < 0 ? Side::Right : Side::Left;
-        }
-        if (side == Side::Top || side == Side::Right)
-            u = 1 - u;
-
-        // find wall tile and texture pos
-        unsigned tile_gid;
-        float tex_coo;
-        if (distance < m_max_depth) {
-            tile_gid = m_level[LevelLayer::Walls](test_point_int.x, test_point_int.y);
-            tex_coo = m_tile_texture_rect[tile_gid-firstgid].left + 16 * u;
-        }
-        else {
-            tile_gid = 0;
-            tex_coo = 0.f;
-        }
-        // fill depth buffer
-        m_depth_buffer[i] = distance;
-
-        // fill all the information
-        WallHit wall_hit;
-        wall_hit.distance = distance;
-        wall_hit.ray_dir = ray_dir;
-        wall_hit.fisheye_correction = fisheye_correction;
-        wall_hit.point = test_point;
-        wall_hit.side = side;
-        wall_hit.tex_coo = tex_coo;
-        wall_hit.tile_gid = tile_gid;
-        m_wall_hits_buffer[i].push(wall_hit);
     }
 
     sf::Vector2f cam_dir{std::cos(cam_angle), std::sin(cam_angle)};

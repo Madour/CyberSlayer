@@ -14,7 +14,7 @@ Level::Layer::~Layer() {
 }
 
 auto Level::Layer::operator()(int x, int y) const -> int {
-    if (x+y*m_grid_size.x > m_grid_size.x*m_grid_size.y)
+    if (x < 0 || x >= m_grid_size.x || y < 0 || y >= m_grid_size.y)
         return 0;
     return m_tiles[x + y*m_grid_size.x];
 }
