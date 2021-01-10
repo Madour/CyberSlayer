@@ -51,7 +51,7 @@ public:
     sf::Image m_tileset_image;
     const sf::Uint8* m_tileset_pixels;
     sf::Vector2u m_tileset_size;
-    ns::FloatRect m_tile_texture_rect[4];
+    std::vector<ns::FloatRect> m_tile_texture_rect;
 
     Player* m_player;
     std::vector<std::unique_ptr<LevelObject>> m_level_objects;
@@ -62,16 +62,19 @@ public:
 
     // ray caster data
     float m_max_depth;
-    std::array<float, VIEW_WIDTH> m_depth_buffer;
+    std::array<float, VIEW_WIDTH> m_depth_buffer{};
     std::array<std::stack<WallHit>, VIEW_WIDTH> m_wall_hits_buffer;
     std::vector<SpriteHit> m_sprite_hits_buffer;
 
     // ray caster drawables
     ns::VertexArray m_background;
     ns::VertexArray m_sprites_quads;
-    sf::Uint8* m_floor_ceil_pixels;
-    sf::Texture m_floor_ceil_texture;
-    sf::Sprite m_floor_ceil_sprite;
+    sf::Uint8* m_transparency_mask;
+    sf::Texture m_transparency_mask_texture;
+    sf::Sprite m_transparency_mask_sprite;
+    sf::Uint8* m_framebuffer;
+    sf::Texture m_framebuffer_texture;
+    sf::Sprite m_framebuffer_sprite;
 
     // HUD drawables
     sf::RectangleShape m_hp_bar;

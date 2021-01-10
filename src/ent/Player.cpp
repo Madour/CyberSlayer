@@ -1,4 +1,6 @@
 #include "ent/Player.hpp"
+#include "Level.hpp"
+#include "Utils.hpp"
 
 Player::Player() : LevelObject("Player") {
     setTexture(ns::Res::getTexture("adventurer.png"));
@@ -75,6 +77,7 @@ void Player::update() {
     // update inputs
     inputs()->update();
 
+    // player side walking
     if (m_side_walk) {
         if (physics()->getDirectionMagnitude() == 0) {
             physics()->setDirectionMagnitude(1);
@@ -83,6 +86,15 @@ void Player::update() {
         else
             physics()->setDirectionAngle(physics()->getDirectionAngle() + physics()->getDirectionMagnitude()*m_side_walk*(90 - 45));
     }
+
+    // collisions check
+    sf::Vector2f overlap;
+    for (const auto& coll : Level::getCollisions()) {
+        if (circleRectIntersection(getPosition() + 2.f*physics()->getVelocity(), getSize().x, coll, overlap)) {
+            transform()->move(-overlap);
+        }
+    }
+
     physics()->update();
 
     // update anim state

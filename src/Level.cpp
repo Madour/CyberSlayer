@@ -21,6 +21,8 @@ auto Level::Layer::operator()(int x, int y) const -> int {
 
 Level::Level() = default;
 
+std::vector<sf::FloatRect> Level::collisions;
+
 void Level::load(const std::string& file_name) {
     m_tiledmap.loadFromFile(file_name);
     auto& map_size = m_tiledmap.getDimension();
@@ -40,6 +42,18 @@ void Level::load(const std::string& file_name) {
             m_layers[LevelLayer::Ceiling].m_tiles[x + y * map_size.x] = ceiling_tile_layer->getTile(x, y).gid;
         }
     }
+
+    // store collisions
+    auto tile_size = m_tiledmap.getTileSize().x;
+    Level::collisions.clear();
+    for (const auto& rect : m_tiledmap.getObjectLayer("collisions")->allRectangles()) {
+        Level::collisions.emplace_back(
+            rect.getShape().getGlobalBounds().left/tile_size,
+            rect.getShape().getGlobalBounds().top/tile_size,
+            rect.getShape().getGlobalBounds().width/tile_size,
+            rect.getShape().getGlobalBounds().height/tile_size
+        );
+    }
 }
 
 auto Level::operator[](const LevelLayer& layer_name) const -> const Level::Layer& {
@@ -48,4 +62,8 @@ auto Level::operator[](const LevelLayer& layer_name) const -> const Level::Layer
 
 auto Level::getTileMap() -> ns::tm::TiledMap& {
     return m_tiledmap;
+}
+
+auto Level::getCollisions() -> const std::vector<sf::FloatRect>& {
+    return Level::collisions;
 }
