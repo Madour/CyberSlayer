@@ -1,9 +1,14 @@
+#include "ConfigWindow.hpp"
 #include "Game.hpp"
 
 int main() {
 
     // load all assets
     ns::Res::load("assets");
+
+    // open config window
+    ConfigWindow cfg_window;
+    cfg_window.open();
 
     ns::Config::debug.show_fps = true;
     ns::Config::debug.show_text = true;
@@ -12,10 +17,10 @@ int main() {
     ns::Config::Window::title = "RayCast FPS";
     ns::Config::Window::size = {VIEW_WIDTH, VIEW_HEIGHT};
 
-    ns::Config::Window::antialiasing = 0;
+    ns::Config::Window::antialiasing = cfg_window.getConfig("antialiasing");
     ns::Config::Window::update_rate = 60;
-    ns::Config::Window::framerate_limit = 60;
-    ns::Config::Window::vertical_sync = true;
+    ns::Config::Window::framerate_limit = 100;
+    ns::Config::Window::vertical_sync = cfg_window.getConfig("vertical_sync");
     ns::Config::Window::cursor_visible = false;
 
     // configure some inputs buttons
