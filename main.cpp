@@ -24,6 +24,7 @@ int main() {
     ns::Config::Inputs::setButtonKey("left", sf::Keyboard::Q);
     ns::Config::Inputs::setButtonKey("right", sf::Keyboard::D);
     ns::Config::Inputs::setButtonKey("jump", sf::Keyboard::Space);
+    ns::Config::Inputs::setButtonKey("run", sf::Keyboard::LShift);
 
     Game g;
     g.run();

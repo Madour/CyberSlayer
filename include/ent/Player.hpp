@@ -17,6 +17,7 @@ public:
 private:
     float m_eye_pos;
     bool m_jumping = false;
+    bool m_running = true;
     float m_z = 0.f;
     float m_z_vel = 0.f;
     int m_z_offset_sign = 1;

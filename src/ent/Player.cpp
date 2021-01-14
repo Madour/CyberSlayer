@@ -2,6 +2,8 @@
 #include "Level.hpp"
 #include "Utils.hpp"
 
+using Inputs = ns::Config::Inputs;
+
 Player::Player() : LevelObject("Player") {
     setTexture(ns::Res::getTexture("adventurer.png"));
     setSize({METER, 1.8f*METER});
@@ -31,15 +33,14 @@ Player::Player() : LevelObject("Player") {
     // acceleration, mass, friction
     addComponent<ns::ecs::PhysicsComponent>(sf::Vector2f(0.5f*METER/UPS, 0.5f*METER/UPS), 1.f, sf::Vector2f(0.1f, 0.1f));
 
-    using Inputs = ns::Config::Inputs;
     addComponent<ns::ecs::InputsComponent>();
 
     inputs()->bind(Inputs::getButtonKey("up"), [&]{
-        physics()->setDirectionMagnitude(1);
+        physics()->setDirectionMagnitude(m_running ? 2.f:1.f);
     });
 
     inputs()->bind(Inputs::getButtonKey("down"), [&]{
-        physics()->setDirectionMagnitude(-1);
+        physics()->setDirectionMagnitude(m_running ? -2.f:-1.f);
     });
 
     inputs()->bind(Inputs::getButtonKey("left"), [&]{
@@ -70,6 +71,10 @@ auto Player::getEyePos() const -> float {
 }
 
 void Player::update() {
+    m_running = false;
+    if (sf::Keyboard::isKeyPressed(Inputs::getButtonKey("run"))) {
+        m_running = true;
+    }
     // reset physics
     m_side_walk = 0;
     physics()->setDirectionMagnitude(0);
@@ -80,11 +85,14 @@ void Player::update() {
     // player side walking
     if (m_side_walk) {
         if (physics()->getDirectionMagnitude() == 0) {
-            physics()->setDirectionMagnitude(1);
+            if (physics()->getDirectionMagnitude() == 0)
+                physics()->setDirectionMagnitude(1);
             physics()->setDirectionAngle(physics()->getDirectionAngle() + m_side_walk*90);
         }
-        else
-            physics()->setDirectionAngle(physics()->getDirectionAngle() + physics()->getDirectionMagnitude()*m_side_walk*(90 - 45));
+        else {
+            float sign = std::signbit(physics()->getDirectionMagnitude()) ? -1.f : 1.f;
+            physics()->setDirectionAngle(physics()->getDirectionAngle() + sign*m_side_walk*(90 - 45));
+        }
     }
 
     // collisions check
@@ -117,21 +125,18 @@ void Player::update() {
     }
     // up down walking effect
     else if (physics()->getDirectionMagnitude() != 0){
+        float magnitude = std::abs(physics()->getDirectionMagnitude());
         if (m_z_offset_sign == 1) {
-            if (m_z < 0.1*METER) {
-                m_z+=0.003f;
-            }
-            else {
+            if (m_z < 0.05*METER)
+                m_z+=0.0125f*METER*magnitude;
+            else
                 m_z_offset_sign = -1;
-            }
         }
         else {
-            if (m_z > -0.05*METER) {
-                m_z-=0.0025f;
-            }
-            else {
+            if (m_z > -0.1*METER*magnitude)
+                m_z-=0.015f*METER*magnitude;
+            else
                 m_z_offset_sign = 1;
-            }
         }
     }
     // player is not moving
