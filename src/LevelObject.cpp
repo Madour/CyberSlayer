@@ -1,5 +1,8 @@
 #include "LevelObject.hpp"
 
+LevelObject::LevelObject(const std::string& name) : ns::BaseEntity(name)
+{}
+
 void LevelObject::setTexture(const sf::Texture& texture) {
     m_texture = &texture;
 }
@@ -11,22 +14,18 @@ auto LevelObject::getTexture() -> const sf::Texture& {
     std::exit(-1);
 }
 
-void LevelObject::setPosition(float x, float y) {
-    m_position.x = x; m_position.y = y;
-}
-
-void LevelObject::setPosition(const sf::Vector2f& position) {
-    m_position = position;
-}
-
-auto LevelObject::getPosition() -> const sf::Vector2f& {
-    return m_position;
-}
-
 void LevelObject::setSize(const sf::Vector2f& size) {
     m_size = size;
 }
 
 auto LevelObject::getSize() -> const sf::Vector2f& {
     return m_size;
+}
+
+void LevelObject::computeDistanceToCamera(const sf::Vector2f& camera_pos) {
+    m_distance_to_camera = ns::distance(transform()->getPosition(), camera_pos);
+}
+
+auto LevelObject::getDistanceToCamera() const -> float {
+    return m_distance_to_camera;
 }

@@ -1,23 +1,24 @@
 #pragma once
 
 #include <array>
+#include <stack>
 #include <NasNas.h>
 
+#include "Constants.hpp"
+#include "Camera.hpp"
+#include "Level.hpp"
 #include "LevelObject.hpp"
-#include "Entity.hpp"
+#include "ent/Adventurer.hpp"
+#include "ent/Player.hpp"
 
-constexpr int VIEW_WIDTH = 1200;
-constexpr int VIEW_HEIGHT = 670;
-constexpr float VIEW_RATIO = static_cast<float>(VIEW_WIDTH)/static_cast<float>(VIEW_HEIGHT);
-constexpr float METER = 1.f / 4.f;
-constexpr float WALL_HEIGHT = 4*METER;
-constexpr float FOV = 90.f;
 
 class Game : public ns::App {
 private:
     // private structs used by the ray caster
     enum class Side { Top, Right, Bottom, Left };
     struct WallHit {
+        sf::Vector2f ray_dir;
+        float fisheye_correction=1.f;
         float distance=0.f;
         sf::Vector2f point;
         Side side=Side::Top;
@@ -42,35 +43,44 @@ public:
     void doRayCast();
 
     // level data
-    ns::tm::TiledMap m_level_map;
+    Level m_level;
+    sf::Vector2i m_level_size;
+
+    // tileset data
     float m_tile_size;
-    sf::Vector2u m_level_size;
+    sf::Image m_tileset_image;
+    const sf::Uint8* m_tileset_pixels;
+    sf::Vector2u m_tileset_size;
+    std::vector<ns::FloatRect> m_tile_texture_rect;
+
+    Player* m_player;
     std::vector<std::unique_ptr<LevelObject>> m_level_objects;
 
     // camera data
-    sf::Vector3f m_camera_pos;
-    sf::Vector3f m_camera_rot;
+    Camera m_camera;
     float m_horizon;
-    float m_projection_plane_distance;
 
     // ray caster data
-    float m_fov;
     float m_max_depth;
-    std::array<WallHit, VIEW_WIDTH> m_wall_hits_buffer;
+    std::array<float, VIEW_WIDTH> m_depth_buffer{};
+    std::array<std::stack<WallHit>, VIEW_WIDTH> m_wall_hits_buffer;
     std::vector<SpriteHit> m_sprite_hits_buffer;
 
     // ray caster drawables
     ns::VertexArray m_background;
-    ns::VertexArray m_walls_quads;
     ns::VertexArray m_sprites_quads;
-    ns::VertexArray m_floor_casting;
+    sf::Uint8* m_transparency_mask;
+    sf::Texture m_transparency_mask_texture;
+    sf::Sprite m_transparency_mask_sprite;
+    sf::Uint8* m_framebuffer;
+    sf::Texture m_framebuffer_texture;
+    sf::Sprite m_framebuffer_sprite;
 
     // HUD drawables
     sf::RectangleShape m_hp_bar;
     sf::RectangleShape m_minimap_bg;
 
     // minimap drawables
-    sf::CircleShape m_minimap_player;
     ns::VertexArray m_minimap_entities;
     ns::VertexArray m_minimap_rays;
     ns::VertexArray m_minimap_grid;
