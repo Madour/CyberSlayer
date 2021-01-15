@@ -1,5 +1,6 @@
 #include "Game.hpp"
 #include "Utils.hpp"
+#include <cstring>  // for memset
 
 Game::Game() {
     ns::Config::debug = false;
