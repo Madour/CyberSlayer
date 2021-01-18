@@ -1,4 +1,5 @@
 #include "Game.hpp"
+#include "Item.hpp"
 #include "Utils.hpp"
 
 Game::Game() {
@@ -48,6 +49,18 @@ Game::Game() {
         ent->transform()->setPosition(1.5f+std::rand()%18, 1.5f+std::rand()%18);
         m_level_objects.emplace_back(ent);
     }
+
+    // create items
+    ItemData item_data_heal{
+        "Heal",
+        {251, 315, 51, 34},
+        [](Player& player) {ns_LOG("health collected");},
+        [](Player& player) {ns_LOG("health used");}
+    };
+    auto* health_item = new Item(item_data_heal);
+    health_item->transform()->setPosition(3, 3);
+    m_level_objects.emplace_back(health_item);
+
     // resize the sprite hit buffer used by the ray caster
     m_sprite_hits_buffer.resize(m_level_objects.size());
 
@@ -207,6 +220,9 @@ void Game::update() {
     for (auto& ent : m_level_objects) {
         ent->update();
         ent->computeDistanceToCamera(m_camera.getPosition2D());
+        if (&ent->getTexture() == &ns::Res::getTexture("items.png")) {
+            ns_LOG("item !");
+        }
     }
     //update camera
     m_camera.update(m_player);
