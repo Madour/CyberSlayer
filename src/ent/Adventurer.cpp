@@ -18,8 +18,6 @@ Adventurer::Adventurer() : LevelObject("Adventurer") {
 }
 
 void Adventurer::update() {
-
-	
     m_anim_player.update();
     ns::BaseEntity::update();
 }
