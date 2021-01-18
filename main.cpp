@@ -14,11 +14,11 @@ int main() {
     ns::Config::debug.show_text = true;
     ns::Config::debug.show_bounds = false;
 
-    ns::Config::Window::title = "RayCast FPS";
+    ns::Config::Window::title = "CyberSlayer";
     ns::Config::Window::size = {VIEW_WIDTH, VIEW_HEIGHT};
 
     ns::Config::Window::antialiasing = cfg_window.getConfig("antialiasing");
-    ns::Config::Window::update_rate = 60;
+    ns::Config::Window::update_rate = 75;
     ns::Config::Window::framerate_limit = 100;
     ns::Config::Window::vertical_sync = cfg_window.getConfig("vertical_sync");
     ns::Config::Window::cursor_visible = false;
@@ -30,6 +30,7 @@ int main() {
     ns::Config::Inputs::setButtonKey("right", sf::Keyboard::D);
     ns::Config::Inputs::setButtonKey("jump", sf::Keyboard::Space);
     ns::Config::Inputs::setButtonKey("run", sf::Keyboard::LShift);
+    ns::Config::Inputs::setButtonKey("slide", sf::Keyboard::C);
 
     Game g;
     g.run();
