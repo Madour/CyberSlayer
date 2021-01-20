@@ -10,6 +10,7 @@
 #include "LevelObject.hpp"
 #include "ent/Adventurer.hpp"
 #include "ent/Player.hpp"
+#include "Weapon.hpp"
 
 
 class Game : public ns::App {
@@ -84,4 +85,8 @@ public:
     ns::VertexArray m_minimap_entities;
     ns::VertexArray m_minimap_rays;
     ns::VertexArray m_minimap_grid;
+
+    // Weapon
+    Pistol laser_pistol;
+    sf::Sprite gun_sprite;
 };
