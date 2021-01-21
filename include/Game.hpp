@@ -87,6 +87,9 @@ public:
     ns::VertexArray m_minimap_grid;
 
     // Weapon
-    Pistol laser_pistol;
-    sf::Sprite gun_sprite;
+    Weapon* m_current_weapon; // = &pistol
+
+    Pistol m_laser_pistol;
+    Rifle m_laser_rifle;
+    sf::Sprite m_gun_sprite;
 };

@@ -12,24 +12,23 @@ public :
     int getRange();
 
     virtual void attack(){}
-
     virtual void update(){}
 
     sf::Sprite getSprite();
 
 protected :
-    int damage;
-    int range;
+    int m_damage;
+    int m_range;
 
-    bool attacking;
+    bool m_attacking;
 
-    sf::Clock clk;
-    sf::Time cooldown;
+    sf::Clock m_clk;
+    sf::Time m_cooldown;
 
-    sf::SoundBuffer sound_buffer;
-    sf::Sound sound;
+    sf::SoundBuffer m_sound_buffer;
+    sf::Sound m_sound;
 
-    sf::Sprite currentSprite;
+    sf::Sprite m_currentSprite;
 };
 
 class Pistol : public Weapon {
@@ -37,15 +36,37 @@ public :
     Pistol();
     int getAmo();
     void setAmo(int amo_amount);
+    float getFovZoom();
     void attack() override;
     void update() override;
     void aim();
     void noAim();
 
 private :
-    int amo;
-    int dispersion;
-    bool aiming;
+    int m_amo;
+    int m_dispersion;
+    bool m_aiming;
+    float m_fov_zoom;
 
-    sf::Sprite spritesheet[4];
+    sf::Sprite m_spritesheet[4];
+};
+
+class Rifle : public Weapon {
+public :
+    Rifle();
+    int getAmo();
+    void setAmo(int amo_amount);
+    float getFovZoom();
+    void attack() override;
+    void update() override;
+    void aim();
+    void noAim();
+
+private :
+    int m_amo;
+    int m_dispersion;
+    bool m_aiming;
+    float m_fov_zoom;
+
+    sf::Sprite m_spritesheet[4];
 };

@@ -150,7 +150,7 @@ Game::Game() {
     //hud->getDefaultLayer()->addRaw(&m_hp_bar);
     hud->getDefaultLayer()->addRaw(&m_minimap_bg);
     hud->getDefaultLayer()->add(help_text);
-    hud->getDefaultLayer()->add(&gun_sprite);
+    hud->getDefaultLayer()->addRaw(&m_gun_sprite);
 
     // create the HUD camera
     auto* hud_cam = createCamera("hud", 1);
@@ -197,24 +197,6 @@ void Game::onEvent(const sf::Event& event) {
             toggleFullscreen();
         }
     }
-    else if (event.type == sf::Event::MouseButtonPressed)
-    {
-        if (event.mouseButton.button == sf::Mouse::Left)
-        {
-            laser_pistol.attack();
-        }
-        else if (event.mouseButton.button == sf::Mouse::Right)
-        {
-            laser_pistol.aim();
-        }
-    }
-    else if (event.type == sf::Event::MouseButtonReleased) {
-        if (event.mouseButton.button == sf::Mouse::Right)
-        {
-            laser_pistol.noAim();
-        }
-    }
-
     if (getWindow().hasFocus())
         m_camera.onEvent(event);
 }
@@ -241,8 +223,10 @@ void Game::update() {
     getCamera("minimap")->setCenter(camera_pos2d*m_tile_size);
     getCamera("minimap")->setRotation(ns::to_degree(m_camera.getYaw())+ 90);
 
-    laser_pistol.update();
-    gun_sprite = laser_pistol.getSprite();
+    m_laser_rifle.update();
+    m_gun_sprite = m_laser_rifle.getSprite();
+    std::cout << "fov : " << m_camera.getBaseFovRad()*m_laser_rifle.getFovZoom() << std::endl;
+    m_camera.setFovRad(m_camera.getBaseFovRad()/m_laser_rifle.getFovZoom());
 }
 
 void Game::preRender() {
