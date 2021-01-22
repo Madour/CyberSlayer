@@ -18,7 +18,10 @@ public:
     void onCollect(Player& player);
     void onUse(Player& player);
 
+    void update() override;
+
 private:
+    float m_sign=0.005f*METER;
     ItemData m_data;
 };
 

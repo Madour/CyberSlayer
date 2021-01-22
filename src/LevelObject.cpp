@@ -1,7 +1,13 @@
 #include "LevelObject.hpp"
 
-LevelObject::LevelObject(const std::string& name) : ns::BaseEntity(name)
+LevelObject::LevelObject(const std::string& name) :
+ns::BaseEntity(name),
+m_z(0.f)
 {}
+
+auto LevelObject::getZ() const -> float {
+    return m_z;
+}
 
 void LevelObject::setTexture(const sf::Texture& texture) {
     m_texture = &texture;

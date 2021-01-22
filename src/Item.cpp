@@ -19,6 +19,12 @@ void Item::onUse(Player& player) {
     m_data.on_use(player);
 }
 
+void Item::update() {
+    if (m_z > 0.15*METER || m_z < 0)
+        m_sign *= -1;
+    m_z += m_sign;
+}
+
 std::unordered_map<std::string, ItemData> ItemFactory::m_items_data = {
     {"Heal", {
         "Heal",

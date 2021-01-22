@@ -1,5 +1,4 @@
 #include "Game.hpp"
-#include "Item.hpp"
 #include "Utils.hpp"
 
 Game::Game() : m_billboards("sprites") {
@@ -378,7 +377,7 @@ void Game::preRender() {
             float scalex = float(sprite_hit.ray_max - sprite_hit.ray_min)/tex_rect.width;
             float scaley = float(ent_size.y*ratio)/tex_rect.height;
             tr.setScale(scalex, scaley);
-            tr.setPosition((float)sprite_hit.ray_min, m_horizon - (ent_size.y  + m_camera.getPosition3D().z)*ratio);
+            tr.setPosition((float)sprite_hit.ray_min, m_horizon - (ent_size.y + ent->getZ() + m_camera.getPosition3D().z)*ratio);
             m_billboards.draw(&ent->getTexture(), tex_rect, tr);
         }
         ++i;
