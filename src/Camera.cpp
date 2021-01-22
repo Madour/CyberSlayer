@@ -3,6 +3,7 @@
 
 Camera::Camera() :
 m_sensibility(0.5f),
+m_weapon_recoil(0.0f),
 m_base_fov(FOV),
 m_fov(FOV),
 m_projection_distance((static_cast<float>(VIEW_WIDTH)/2.f) / std::tan(FOV/2.f))
@@ -61,6 +62,10 @@ auto Camera::getPosition2D() const -> const sf::Vector2f& {
     return m_position2d;
 }
 
+void Camera::setRecoil(float recoil) {
+    m_weapon_recoil = recoil;
+}
+
 auto Camera::getRotationDeg() const -> sf::Vector3f {
     return {ns::to_degree(m_rotation.x), ns::to_degree(m_rotation.y), ns::to_degree(m_rotation.z)};
 }
@@ -87,18 +92,19 @@ void Camera::onEvent(const sf::Event& event) {
         int dy = event.mouseMove.y - VIEW_HEIGHT/2;
 
         // Yaw between 0 and 2*PI
-        m_rotation.z += ns::to_radian(static_cast<float>(dx)) * m_sensibility;
+        m_rotation.z += ns::to_radian(static_cast<float>(dx)) * m_sensibility + (std::rand()%3-1)*0.5f*m_weapon_recoil;
+        std::cout << "recoil z : " << (std::rand()%3-1)*0.1f*m_weapon_recoil << std::endl;
         if (m_rotation.z > TWO_PI) m_rotation.z -= TWO_PI;
         if (m_rotation.z < 0.f) m_rotation.z += TWO_PI;
 
         // Pitch between -PI/2 and +PI/2
-        m_rotation.y += ns::to_radian(static_cast<float>(dy)) * m_sensibility;
+        m_rotation.y += ns::to_radian(static_cast<float>(dy)) * m_sensibility - m_weapon_recoil;
         m_rotation.y = std::max(-HALF_PI, std::min(HALF_PI, m_rotation.y));
 
         // 3rd person camera
         //if (std::abs(m_rotation.y) < HALF_PI)
         //    m_camera_pos.z += ns::to_radian(static_cast<float>(dy))*0.01f;
-
+        m_weapon_recoil = 0.0f;
     }
 }
 

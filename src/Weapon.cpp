@@ -22,12 +22,15 @@ sf::Sprite Weapon::getSprite() {
 Pistol::Pistol() {
     m_damage = 10;
     m_range = 50;
-    m_cooldown = sf::milliseconds(300);
+    m_cooldown = sf::milliseconds(500);
+    m_cooldown_sprite = sf::milliseconds(100);
 
     m_amo = 50;
     m_aiming = false;
     m_dispersion = 10;
     m_fov_zoom = 1.f;
+
+    m_recoil = 0.07f;
     
     for (int i=0 ; i<4 ; i++) {
         m_spritesheet[i].setTexture(ns::Res::in("sprites").getTexture("laser_pistol.png"));
@@ -58,21 +61,22 @@ float Pistol::getFovZoom() {
     return m_fov_zoom;
 }
 
-void Pistol::attack() {
+void Pistol::attack(Camera* camera) {
     if (!m_attacking && m_amo > 0) {
         m_sound.play();
         m_clk.restart();
         m_amo--;
+        camera->setRecoil(m_recoil);
     }
 
 }
 
-void Pistol::update() {
+void Pistol::update(Player* player, Camera* camera) {
 
     if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-        attack();
+        attack(camera);
     }
-    if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+    if (sf::Mouse::isButtonPressed(sf::Mouse::Right) && !player->isRunning()) {
         aim();
     }
     else {
@@ -87,7 +91,7 @@ void Pistol::update() {
     }
 
     if (m_aiming) {
-        if (m_attacking) {
+        if (m_attacking && m_cooldown_sprite >= m_clk.getElapsedTime()) {
             m_currentSprite = m_spritesheet[3];
         }
         else {
@@ -95,7 +99,7 @@ void Pistol::update() {
         }
     }
     else {
-        if (m_attacking) {
+        if (m_attacking && m_cooldown_sprite >= m_clk.getElapsedTime()) {
             m_currentSprite = m_spritesheet[1];
         }
         else {
@@ -122,11 +126,14 @@ Rifle::Rifle() {
     m_damage = 3;
     m_range = 30;
     m_cooldown = sf::milliseconds(100);
+    m_cooldown_sprite = sf::milliseconds(50);;
 
     m_amo = 500;
     m_aiming = false;
     m_dispersion = 30;
     m_fov_zoom = 1.f;
+
+    m_recoil = 0.03f;
     
     for (int i=0 ; i<4 ; i++) {
         m_spritesheet[i].setTexture(ns::Res::in("sprites").getTexture("laser_rifle.png"));
@@ -163,21 +170,22 @@ float Rifle::getFovZoom() {
     return m_fov_zoom;
 }
 
-void Rifle::attack() {
+void Rifle::attack(Camera* camera) {
     if (!m_attacking && m_amo > 0) {
         m_sound.play();
         m_clk.restart();
         m_amo--;
+        camera->setRecoil(m_recoil);
     }
 
 }
 
-void Rifle::update() {
+void Rifle::update(Player* player, Camera* camera) {
 
     if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-        attack();
+        attack(camera);
     }
-    if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+    if (sf::Mouse::isButtonPressed(sf::Mouse::Right) && !player->isRunning()) {
         aim();
     }
     else {

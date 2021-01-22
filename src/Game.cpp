@@ -187,6 +187,11 @@ Game::Game() {
     addDebugText<float>([&]{return ns::to_degree(m_camera.getFovRad()); }, "FOV :", {0, 80});
     ///////////////////////////////////////////////////////
 
+    //WEAPONS
+    m_current_weapon = &m_laser_pistol;
+    m_weapon_selector = 0;
+    m_number_weapon = 2;
+
 }
 
 void Game::onEvent(const sf::Event& event) {
@@ -196,6 +201,9 @@ void Game::onEvent(const sf::Event& event) {
         if (event.key.code == sf::Keyboard::F) {
             toggleFullscreen();
         }
+    }
+    else if (event.type == sf::Event::MouseWheelMoved) {
+        m_weapon_selector = (m_weapon_selector+1)%m_number_weapon;
     }
     if (getWindow().hasFocus())
         m_camera.onEvent(event);
@@ -223,10 +231,20 @@ void Game::update() {
     getCamera("minimap")->setCenter(camera_pos2d*m_tile_size);
     getCamera("minimap")->setRotation(ns::to_degree(m_camera.getYaw())+ 90);
 
-    m_laser_rifle.update();
-    m_gun_sprite = m_laser_rifle.getSprite();
-    std::cout << "fov : " << m_camera.getBaseFovRad()*m_laser_rifle.getFovZoom() << std::endl;
-    m_camera.setFovRad(m_camera.getBaseFovRad()/m_laser_rifle.getFovZoom());
+    m_current_weapon->update(m_player, &m_camera);
+    m_gun_sprite = m_current_weapon->getSprite();
+    m_camera.setFovRad(m_camera.getBaseFovRad()/m_current_weapon->getFovZoom());
+
+    if (m_player->isRunning()) {
+        m_camera.setFovRad(m_camera.getBaseFovRad()*1.1f);
+    }
+
+    if (m_weapon_selector == 0) {
+        m_current_weapon = &m_laser_pistol;
+    }
+    else if (m_weapon_selector == 1) {
+        m_current_weapon = &m_laser_rifle;
+    }
 }
 
 void Game::preRender() {
