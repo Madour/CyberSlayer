@@ -2,7 +2,7 @@
 #include "Item.hpp"
 #include "Utils.hpp"
 
-Game::Game() {
+Game::Game() : m_billboards("sprites") {
     ns::Config::debug = false;
     auto& appview_size = getWindow().getAppView().getSize();
 
@@ -22,10 +22,6 @@ Game::Game() {
     m_framebuffer = new sf::Uint8[VIEW_WIDTH * VIEW_HEIGHT * 4];
     memset(m_framebuffer, 0, VIEW_WIDTH * VIEW_HEIGHT * 4 * sizeof(sf::Uint8));
     m_framebuffer_texture.create(VIEW_WIDTH, VIEW_HEIGHT);
-
-    m_transparency_mask = new sf::Uint8[VIEW_WIDTH * VIEW_HEIGHT * 4];
-    memset(m_transparency_mask, 0, VIEW_WIDTH * VIEW_HEIGHT * 4 * sizeof(sf::Uint8));
-    m_transparency_mask_texture.create(VIEW_WIDTH, VIEW_HEIGHT);
 
     m_tile_size = static_cast<float>(tile_map.getTileSize().x);
     m_level_size.x = static_cast<int>(tile_map.getDimension().x);
@@ -49,28 +45,17 @@ Game::Game() {
         ent->transform()->setPosition(1.5f+std::rand()%18, 1.5f+std::rand()%18);
         m_level_objects.emplace_back(ent);
     }
-
-    // create items
-    ItemData item_data_heal{
-        "Heal",
-        {251, 315, 51, 34},
-        [](Player& player) {ns_LOG("health collected");},
-        [](Player& player) {ns_LOG("health used");}
-    };
-    auto* health_item = new Item(item_data_heal);
-    health_item->transform()->setPosition(3, 3);
-    m_level_objects.emplace_back(health_item);
+    // add level items to level objects list
+    for (auto& item : Level::getItems())
+        m_level_objects.emplace_back(item.get());
 
     // resize the sprite hit buffer used by the ray caster
     m_sprite_hits_buffer.resize(m_level_objects.size());
 
     ///////////////////////////////////////////////////////
     // Main scene drawables
-    // setup walls vertices
-    // adjust sprites vertex array size
-    m_sprites_quads.setPrimitiveType(sf::PrimitiveType::Quads);
-    m_sprites_quads.setTexture(ns::Res::getTexture("adventurer.png"));
-    m_sprites_quads.resize(m_level_objects.size()*4);
+    m_billboards.start(sf::VertexBuffer::Stream);
+    m_billboards.end();
 
     // setup background
     m_background.setPrimitiveType(sf::PrimitiveType::Quads);
@@ -146,7 +131,7 @@ Game::Game() {
     // add drawables to the main scene here
     scene->getDefaultLayer()->addRaw(&m_background);
     scene->getDefaultLayer()->addRaw(&m_framebuffer_sprite);
-    scene->getDefaultLayer()->addRaw(&m_sprites_quads);
+    scene->getDefaultLayer()->addRaw(&m_billboards);
 
     // create the main camera
     auto* camera = createCamera("main", 0);
@@ -199,6 +184,12 @@ Game::Game() {
 
 }
 
+Game::~Game() {
+    for (auto level_object : m_level_objects) {
+        delete(level_object);
+    }
+}
+
 void Game::onEvent(const sf::Event& event) {
     ns::App::onEvent(event);
 
@@ -220,10 +211,22 @@ void Game::update() {
     for (auto& ent : m_level_objects) {
         ent->update();
         ent->computeDistanceToCamera(m_camera.getPosition2D());
-        if (&ent->getTexture() == &ns::Res::getTexture("items.png")) {
-            ns_LOG("item !");
+    }
+
+    // check if player can collect an item
+    for (int i = 0; i < Level::getItems().size(); ++i) {
+        if (ns::distance(Level::getItems()[i]->getPosition(), m_player->getPosition()) < 0.3) {
+            Level::getItems()[i]->onCollect(*m_player);
+            for (auto it = m_level_objects.begin(); it != m_level_objects.end(); it++) {
+                if (*it == Level::getItems()[i].get()) {
+                    m_level_objects.erase(it);
+                    break;
+                }
+            }
+            Level::getItems().erase(Level::getItems().begin()+i--);
         }
     }
+
     //update camera
     m_camera.update(m_player);
     const auto& camera_pos2d = m_camera.getPosition2D();
@@ -257,8 +260,7 @@ void Game::preRender() {
     doRayCast();
 
     memset(m_framebuffer, 0, VIEW_WIDTH * VIEW_HEIGHT * 4 * sizeof(sf::Uint8));
-    memset(m_transparency_mask, 0, VIEW_WIDTH * VIEW_HEIGHT * 4 * sizeof(sf::Uint8));
-
+    m_billboards.clear();
     for (unsigned i = 0; i < m_wall_hits_buffer.size(); ++i) {
         bool first = true;
         while (!m_wall_hits_buffer[i].empty()) {
@@ -287,11 +289,6 @@ void Game::preRender() {
                     m_framebuffer[index + 1] = static_cast<sf::Uint8>((float)texture_pix[1] / (color_mult));
                     m_framebuffer[index + 2] = static_cast<sf::Uint8>((float)texture_pix[2] / (color_mult));
                     m_framebuffer[index + 3] = texture_pix[3];
-                }
-                else {
-                    m_transparency_mask[index+0] = 150;
-                    m_transparency_mask[index+2] = 150;
-                    m_transparency_mask[index+3] = 150;
                 }
             }
 
@@ -364,40 +361,25 @@ void Game::preRender() {
     }
 
     int i = 0;
+    sf::Transformable tr;
+    sf::IntRect tex_rect;
     for (auto& sprite_hit : m_sprite_hits_buffer) {
         auto ent = sprite_hit.sprite;
         if (sprite_hit.visible) {
             auto ratio = proj_plane_dist / sprite_hit.distance; // thales
             auto& ent_size = ent->getSize();
             const auto& ent_tex_rect = ent->getTextureRect();
-            /*int max_y = m_horizon - m_camera.getPosition3D().z * ratio;
-            for (int x = sprite_hit.ray_min; x < sprite_hit.ray_max; ++x) {
-                int tex_x = ent_tex_rect.left + sprite_hit.t_min*ent_tex_rect.width;
-                for (int y = m_horizon - (ent_size.y  + m_camera.getPosition3D().z)*ratio; y < max_y; ++y) {
-                    if ( y < 0 || y >= VIEW_HEIGHT)
-                        continue;
-                    int tex_y = ent_tex_rect.top;
-                    int index = (y*VIEW_WIDTH + x)*4;
-                    m_framebuffer[index + 0] = 255;
-                    m_framebuffer[index + 1] = 0;
-                    m_framebuffer[index + 2] = 0;
-                    m_framebuffer[index + 3] = 255;
-                }
-            }*/
-            m_sprites_quads[i*4+0].position = {float(sprite_hit.ray_min), m_horizon - (ent_size.y  + m_camera.getPosition3D().z)*ratio};
-            m_sprites_quads[i*4+1].position = {float(sprite_hit.ray_max), m_horizon - (ent_size.y  + m_camera.getPosition3D().z)*ratio};
-            m_sprites_quads[i*4+2].position = {float(sprite_hit.ray_max), m_horizon - m_camera.getPosition3D().z * ratio};
-            m_sprites_quads[i*4+3].position = {float(sprite_hit.ray_min), m_horizon - m_camera.getPosition3D().z * ratio};
-            m_sprites_quads[i*4+0].texCoords = sf::Vector2f(ent_tex_rect.left + sprite_hit.t_min*ent_tex_rect.width, ent_tex_rect.top);
-            m_sprites_quads[i*4+1].texCoords = sf::Vector2f(ent_tex_rect.left + sprite_hit.t_max*ent_tex_rect.width, ent_tex_rect.top);
-            m_sprites_quads[i*4+2].texCoords = sf::Vector2f(ent_tex_rect.left + sprite_hit.t_max*ent_tex_rect.width, ent_tex_rect.top + ent_tex_rect.height);
-            m_sprites_quads[i*4+3].texCoords = sf::Vector2f(ent_tex_rect.left + sprite_hit.t_min*ent_tex_rect.width, ent_tex_rect.top + ent_tex_rect.height);
-        }
-        else {
-            m_sprites_quads[i*4+0].position = sf::Vector2f(0, 0);
-            m_sprites_quads[i*4+1].position = sf::Vector2f(0, 0);
-            m_sprites_quads[i*4+2].position = sf::Vector2f(0, 0);
-            m_sprites_quads[i*4+3].position = sf::Vector2f(0, 0);
+
+            tex_rect.left = (int)(ent_tex_rect.left + sprite_hit.t_min*ent_tex_rect.width);
+            tex_rect.top = ent_tex_rect.top;
+            tex_rect.width = (int)((sprite_hit.t_max - sprite_hit.t_min)*ent_tex_rect.width);
+            tex_rect.height = ent_tex_rect.height;
+
+            float scalex = float(sprite_hit.ray_max - sprite_hit.ray_min)/tex_rect.width;
+            float scaley = float(ent_size.y*ratio)/tex_rect.height;
+            tr.setScale(scalex, scaley);
+            tr.setPosition((float)sprite_hit.ray_min, m_horizon - (ent_size.y  + m_camera.getPosition3D().z)*ratio);
+            m_billboards.draw(&ent->getTexture(), tex_rect, tr);
         }
         ++i;
         sprite_hit.visible = false;
@@ -406,12 +388,11 @@ void Game::preRender() {
         sprite_hit.ray_min = VIEW_WIDTH;
         sprite_hit.ray_max = 0;
     }
-
+    // end billboards spritebatch
+    m_billboards.end();
     // push the framebuffer to the texture
     m_framebuffer_texture.update(m_framebuffer);
     m_framebuffer_sprite.setTexture(m_framebuffer_texture);
-    m_transparency_mask_texture.update(m_transparency_mask);
-    m_transparency_mask_sprite.setTexture(m_transparency_mask_texture);
 }
 
 void Game::doRayCast() {
@@ -583,8 +564,7 @@ void Game::doRayCast() {
 
     sf::Vector2f cam_dir{std::cos(cam_angle), std::sin(cam_angle)};
     int spr_hit_index = 0;
-    for (auto& ent_unique : m_level_objects) {
-        auto* ent = ent_unique.get();
+    for (auto* ent : m_level_objects) {
         if (ent == m_player)
             continue;
 
@@ -613,6 +593,7 @@ void Game::doRayCast() {
         int i_min = static_cast<int>(std::tan(ent_left_angle) * proj_plane_dist) + VIEW_WIDTH/2;
         if (i_min < 0) i_min = 0;
         if (i_min > VIEW_WIDTH-1) i_min = VIEW_WIDTH-1;
+
         int i_max = static_cast<int>(std::tan(ent_right_angle) * proj_plane_dist) + VIEW_WIDTH/2;
         if (i_max < 0) i_max = 0;
         if (i_max > VIEW_WIDTH-1) i_max = VIEW_WIDTH-1;

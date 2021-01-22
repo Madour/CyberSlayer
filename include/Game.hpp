@@ -7,6 +7,7 @@
 #include "Constants.hpp"
 #include "Camera.hpp"
 #include "Level.hpp"
+#include "Item.hpp"
 #include "LevelObject.hpp"
 #include "ent/Adventurer.hpp"
 #include "ent/Player.hpp"
@@ -36,6 +37,7 @@ private:
     };
 public:
     Game();
+    ~Game() override;
     void onEvent(const sf::Event& event) override;
     void update() override;
     void preRender() override;
@@ -54,7 +56,7 @@ public:
     std::vector<ns::FloatRect> m_tile_texture_rect;
 
     Player* m_player;
-    std::vector<std::unique_ptr<LevelObject>> m_level_objects;
+    std::vector<LevelObject*> m_level_objects;
 
     // camera data
     Camera m_camera;
@@ -68,10 +70,8 @@ public:
 
     // ray caster drawables
     ns::VertexArray m_background;
-    ns::VertexArray m_sprites_quads;
-    sf::Uint8* m_transparency_mask;
-    sf::Texture m_transparency_mask_texture;
-    sf::Sprite m_transparency_mask_sprite;
+    ns::SpriteBatch m_billboards;
+
     sf::Uint8* m_framebuffer;
     sf::Texture m_framebuffer_texture;
     sf::Sprite m_framebuffer_sprite;

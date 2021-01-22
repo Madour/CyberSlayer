@@ -21,3 +21,11 @@ public:
 private:
     ItemData m_data;
 };
+
+class ItemFactory {
+public:
+    static auto createFromName(const std::string& name) -> Item*;
+
+private:
+    static std::unordered_map<std::string, ItemData> m_items_data;
+};
