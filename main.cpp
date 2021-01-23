@@ -19,7 +19,7 @@ int main() {
 
     ns::Config::Window::antialiasing = cfg_window.getConfig("antialiasing");
     ns::Config::Window::update_rate = 60;
-    ns::Config::Window::framerate_limit = 100;
+    ns::Config::Window::framerate_limit = 60;
     ns::Config::Window::vertical_sync = cfg_window.getConfig("vertical_sync");
     ns::Config::Window::cursor_visible = false;
 
