@@ -190,7 +190,7 @@ Game::Game() {
     //WEAPONS
     m_current_weapon = &m_laser_pistol;
     m_weapon_selector = 0;
-    m_number_weapon = 2;
+    m_number_weapon = 4;
 
 }
 
@@ -201,9 +201,17 @@ void Game::onEvent(const sf::Event& event) {
         if (event.key.code == sf::Keyboard::F) {
             toggleFullscreen();
         }
+        else if (event.key.code == sf::Keyboard::A) {
+            m_weapon_selector = (m_weapon_selector+1)%m_number_weapon;
+        }
     }
     else if (event.type == sf::Event::MouseWheelMoved) {
-        m_weapon_selector = (m_weapon_selector+1)%m_number_weapon;
+        if (event.mouseWheel.delta > 0) {
+            m_weapon_selector = (m_weapon_selector+1)%m_number_weapon;
+        }
+        else {
+            m_weapon_selector = (m_weapon_selector-1)%m_number_weapon;
+        }
     }
     if (getWindow().hasFocus())
         m_camera.onEvent(event);
@@ -245,6 +253,13 @@ void Game::update() {
     else if (m_weapon_selector == 1) {
         m_current_weapon = &m_laser_rifle;
     }
+    else if (m_weapon_selector == 2) {
+        m_current_weapon = &m_sniper;
+    }
+    else if (m_weapon_selector == 3) {
+        m_current_weapon = &m_melee;
+    }
+
 }
 
 void Game::preRender() {

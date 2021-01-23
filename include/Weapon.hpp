@@ -32,7 +32,7 @@ protected :
     sf::SoundBuffer m_sound_buffer;
     sf::Sound m_sound;
 
-    sf::Sprite m_currentSprite;
+    sf::Sprite m_current_sprite;
 };
 
 class Pistol : public Weapon {
@@ -79,4 +79,41 @@ private :
     sf::Time m_cooldown_sprite;
 
     sf::Sprite m_spritesheet[4];
+};
+
+class Sniper : public Weapon {
+public :
+    Sniper();
+    int getAmo();
+    void setAmo(int amo_amount);
+    float getFovZoom() override;
+    void attack(Camera* camera) override;
+    void update(Player* player, Camera* camera) override;
+    void aim();
+    void noAim();
+
+private :
+    int m_amo;
+    int m_dispersion;
+    bool m_aiming;
+    float m_fov_zoom;
+    float m_recoil;
+
+    sf::Time m_cooldown_sprite[5];
+
+    sf::Sprite m_spritesheet[6];
+};
+
+class Melee : public Weapon {
+public :
+    Melee();
+    float getFovZoom() override;
+    void attack(Camera* camera) override;
+    void update(Player* player, Camera* camera) override;
+
+private :
+
+    sf::Time m_cooldown_sprite[3];
+
+    sf::Sprite m_spritesheet[3];
 };

@@ -93,5 +93,7 @@ public:
     Weapon* m_current_weapon;
     Pistol m_laser_pistol;
     Rifle m_laser_rifle;
+    Sniper m_sniper;
+    Melee m_melee;
     sf::Sprite m_gun_sprite;
 };

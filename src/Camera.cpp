@@ -93,7 +93,6 @@ void Camera::onEvent(const sf::Event& event) {
 
         // Yaw between 0 and 2*PI
         m_rotation.z += ns::to_radian(static_cast<float>(dx)) * m_sensibility + (std::rand()%3-1)*0.5f*m_weapon_recoil;
-        std::cout << "recoil z : " << (std::rand()%3-1)*0.1f*m_weapon_recoil << std::endl;
         if (m_rotation.z > TWO_PI) m_rotation.z -= TWO_PI;
         if (m_rotation.z < 0.f) m_rotation.z += TWO_PI;
 
