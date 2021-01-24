@@ -11,6 +11,7 @@ public:
     void setZ(float z);
     auto getZ() const -> float;
     auto getEyePos() const -> float;
+    bool isRunning();
 
     void update() override;
 

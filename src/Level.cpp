@@ -22,8 +22,12 @@ auto Level::Layer::operator()(int x, int y) const -> int {
 Level::Level() = default;
 
 std::vector<sf::FloatRect> Level::collisions;
+std::vector<std::unique_ptr<Item>> Level::items;
 
 void Level::load(const std::string& file_name) {
+    Level::collisions.clear();
+    Level::items.clear();
+
     m_tiledmap.loadFromFile(file_name);
     auto& map_size = m_tiledmap.getDimension();
 
@@ -54,6 +58,18 @@ void Level::load(const std::string& file_name) {
             rect.getShape().getGlobalBounds().height/tile_size
         );
     }
+
+    // store items
+    for (const auto& point : m_tiledmap.getObjectLayer("items")->allPoints()) {
+        auto* item = ItemFactory::createFromName(point.getProperty<std::string>("name"));
+        if (item != nullptr) {
+            item->transform()->setPosition(point.getShape().getPosition()/(float)tile_size);
+            Level::items.emplace_back(item);
+        }
+        else {
+            ns_LOG("ItemFactory can not create item ", point.getProperty<std::string>("name"));
+        }
+    }
 }
 
 auto Level::operator[](const LevelLayer& layer_name) const -> const Level::Layer& {
@@ -66,4 +82,8 @@ auto Level::getTileMap() -> ns::tm::TiledMap& {
 
 auto Level::getCollisions() -> const std::vector<sf::FloatRect>& {
     return Level::collisions;
+}
+
+auto Level::getItems() -> std::vector<std::unique_ptr<Item>>& {
+    return Level::items;
 }

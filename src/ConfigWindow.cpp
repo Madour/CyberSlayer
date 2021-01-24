@@ -8,7 +8,7 @@ ConfigWindow::ConfigWindow() {
 
 void ConfigWindow::open() {
     sf::RenderWindow window;
-    window.create({500, 300}, "CyberSlayer", sf::Style::Titlebar);
+    window.create({500, 300}, "CyberSlayer settings", sf::Style::Titlebar);
 
     // antialiasing options
     sf::Text antialiasing{"Antialiasing :  ", ns::Arial::getFont()};
