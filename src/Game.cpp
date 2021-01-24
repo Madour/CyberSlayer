@@ -37,7 +37,7 @@ Game::Game() {
     // create the Minimap camera
     auto* minimap_cam = createCamera("minimap", 3, {0, 0, 20*10, 20*10}, {VIEW_WIDTH-200, 0, 200, 200});
     minimap_cam->lookAt(minimap_scene);
-    minimap_cam->zoom(0.9f);
+    minimap_cam->zoom(1.5f);
     ///////////////////////////////////////////////////////
 
     m_state = new TitleScreenState();

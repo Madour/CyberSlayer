@@ -10,7 +10,7 @@ void LevelState::init() {
 
     auto& appview_size = game->getWindow().getAppView().getSize();
 
-    m_level.load("assets/level_test.tmx");
+    m_level.load("assets/level1.tmx");
     auto& tile_map = m_level.getTileMap();
 
     auto& tileset = tile_map.allTilesets()[0];
@@ -37,7 +37,7 @@ void LevelState::init() {
     ns_LOG("Ray cast max depth :", m_max_depth);
 
     m_player = new Player();
-    m_player->transform()->setPosition(1.5f, 1.5f);
+    m_player->transform()->setPosition(6.5f, 48.5f);
     m_level_objects.emplace_back(m_player);
 
     m_current_weapon = &m_laser_pistol;
@@ -549,7 +549,7 @@ void LevelState::doRayCast() {
                     m_wall_hits_buffer[i].push(wall_hit);
 
                     // transparent tiles
-                    if ( tile_gid == 3 || tile_gid == 5) {
+                    if ( tile_gid == 28) {
                         hit = false;
                     }
                 }
