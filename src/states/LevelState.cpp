@@ -10,7 +10,6 @@ void LevelState::init() {
 
     auto& appview_size = game->getWindow().getAppView().getSize();
 
-    //m_level_map.loadFromFile("assets/level_test.tmx");
     m_level.load("assets/level_test.tmx");
     auto& tile_map = m_level.getTileMap();
 
@@ -271,7 +270,7 @@ void LevelState::preRender() {
                 if ( y < 0 || y >= VIEW_HEIGHT)
                     continue;
                 auto tex_x = static_cast<int>(wall_hit.tex_coo);
-                auto tex_y = static_cast<int>((y-ceiling) / (ground-ceiling)*16);
+                auto tex_y = static_cast<int>(m_tile_texture_rect[wall_hit.tile_gid-1].top + (y-ceiling) / (ground-ceiling)*m_tile_size);
                 auto texture_pix = m_tileset_pixels+(tex_x + tex_y*m_tileset_size.x)*4;
                 index = (y*VIEW_WIDTH + i) * 4;
                 if(texture_pix[3] > 0) {
@@ -313,8 +312,8 @@ void LevelState::preRender() {
                         auto& tex_rect = m_tile_texture_rect[gid - firstgid];
                         uv.x = pos.x - pos_i.x;
                         uv.y = pos.y - pos_i.y;
-                        tex_pos.x = static_cast<int>(tex_rect.left + 16 * uv.x);
-                        tex_pos.y = static_cast<int>(tex_rect.top + 16 * uv.y);
+                        tex_pos.x = static_cast<int>(tex_rect.left + m_tile_size * uv.x);
+                        tex_pos.y = static_cast<int>(tex_rect.top + m_tile_size * uv.y);
                         texture_pix = m_tileset_pixels+(tex_pos.x + tex_pos.y*m_tileset_size.x)*4;
                         index = (y*VIEW_WIDTH + i) * 4;
                         float color_mult = std::max(1.2f, grnd_ceil_dist/6);
@@ -338,8 +337,8 @@ void LevelState::preRender() {
                         auto& tex_rect = m_tile_texture_rect[gid - firstgid];
                         uv.x = pos.x - pos_i.x;
                         uv.y = pos.y - pos_i.y;
-                        tex_pos.x = static_cast<int>(tex_rect.left + 16 * uv.x);
-                        tex_pos.y = static_cast<int>(tex_rect.top + 16 * uv.y);
+                        tex_pos.x = static_cast<int>(tex_rect.left + m_tile_size * uv.x);
+                        tex_pos.y = static_cast<int>(tex_rect.top + m_tile_size * uv.y);
                         texture_pix = m_tileset_pixels+(tex_pos.x + tex_pos.y*m_tileset_size.x)*4;
                         index = (y*VIEW_WIDTH + i) * 4;
                         float color_mult = std::max(1.2f, grnd_ceil_dist/6);
@@ -529,7 +528,7 @@ void LevelState::doRayCast() {
                     float tex_coo;
                     if (distance < m_max_depth) {
                         tile_gid = m_level[LevelLayer::Walls](test_point_int.x, test_point_int.y);
-                        tex_coo = m_tile_texture_rect[tile_gid-firstgid].left + 16 * u;
+                        tex_coo = m_tile_texture_rect[tile_gid-firstgid].left + m_tile_size * u;
                     }
                     else {
                         tile_gid = 0;
