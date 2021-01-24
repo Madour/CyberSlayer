@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.4" tiledversion="1.4.1" orientation="orthogonal" renderorder="right-down" width="20" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="35">
+<map version="1.4" tiledversion="1.4.1" orientation="orthogonal" renderorder="right-down" width="20" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="8" nextobjectid="38">
  <tileset firstgid="1" source="tileset.tsx"/>
  <layer id="2" name="ground" width="20" height="20">
   <data encoding="csv">
@@ -100,5 +100,25 @@
   <object id="32" x="112" y="16" width="16" height="96"/>
   <object id="33" x="80" y="256" width="16" height="32"/>
   <object id="34" x="112" y="256" width="16" height="32"/>
+ </objectgroup>
+ <objectgroup color="#44ff00" id="7" name="items">
+  <object id="35" x="58" y="41">
+   <properties>
+    <property name="name" value="Heal"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="36" x="43.5" y="59">
+   <properties>
+    <property name="name" value="Heal"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="37" x="87.5" y="75">
+   <properties>
+    <property name="name" value="Ammo"/>
+   </properties>
+   <point/>
+  </object>
  </objectgroup>
 </map>

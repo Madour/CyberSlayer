@@ -6,6 +6,8 @@ class LevelObject : public ns::BaseEntity {
 public:
     explicit LevelObject(const std::string& name);
 
+    auto getZ() const -> float;
+
     void setTexture(const sf::Texture& texture);
     auto getTexture() -> const sf::Texture&;
 
@@ -18,6 +20,9 @@ public:
     auto getDistanceToCamera() const -> float;
 
 protected:
+    float m_z;
+
+private:
     const sf::Texture* m_texture = nullptr;
     sf::Vector2f m_size;
     float m_distance_to_camera = 0.f;

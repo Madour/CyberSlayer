@@ -1,6 +1,7 @@
 #pragma once
 
 #include <NasNas.h>
+#include "Item.hpp"
 
 enum LevelLayer {
     Ground,
@@ -30,9 +31,11 @@ public:
 
     auto getTileMap() -> ns::tm::TiledMap&;
     static auto getCollisions() -> const std::vector<sf::FloatRect>&;
+    static auto getItems() -> std::vector<std::unique_ptr<Item>>&;
 
 private:
     static std::vector<sf::FloatRect> collisions;
+    static std::vector<std::unique_ptr<Item>> items;
     ns::tm::TiledMap m_tiledmap;
     Level::Layer m_layers[3];
 };
