@@ -41,7 +41,7 @@ void TitleScreenState::init() {
     m_play_text.setFont(ns::Res::in("fonts").getFont("Cyberpunk.ttf"));
     m_play_text.setCharacterSize(50);
     m_play_text.setStyle(sf::Text::Style::Bold);
-    m_play_text.setOutlineThickness(1.f);
+    m_play_text.setOutlineThickness(3.f);
     m_play_text.setOutlineColor(sf::Color(100, 50, 100, 0));
     m_play_text.setFillColor({255, 255, 255, 0});
     text_size = {m_play_text.getGlobalBounds().width, m_play_text.getGlobalBounds().height};
@@ -93,7 +93,7 @@ void TitleScreenState::update() {
             }
             else {
                 if (m_play_text.getFillColor().a != 255) {
-                    m_play_text.setFillColor(m_play_text.getFillColor() + sf::Color(0, 0, 0, 2));
+                    m_play_text.setFillColor(m_play_text.getFillColor() + sf::Color(0, 0, 0, 10));
                     m_play_text.setOutlineColor(m_play_text.getOutlineColor() + sf::Color(0, 0, 0, 5));
                 }
             }

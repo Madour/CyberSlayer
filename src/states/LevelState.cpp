@@ -304,6 +304,8 @@ void LevelState::preRender() {
                         grnd_ceil_dist = ceil_ratio / (y - m_horizon);
                         pos.x = cam_pos2d.x + wall_hit.ray_dir.x * grnd_ceil_dist;
                         pos.y = cam_pos2d.y + wall_hit.ray_dir.y * grnd_ceil_dist;
+                        if (pos.x < 0 || pos.y < 0)
+                            continue;
                         pos_i.x = (int)pos.x;
                         pos_i.y = (int)pos.y;
                         gid = m_level[LevelLayer::Ceiling](pos_i.x, pos_i.y);
@@ -329,6 +331,8 @@ void LevelState::preRender() {
                         grnd_ceil_dist = ground_ratio / (y - m_horizon);
                         pos.x = cam_pos2d.x + wall_hit.ray_dir.x * grnd_ceil_dist;
                         pos.y = cam_pos2d.y + wall_hit.ray_dir.y * grnd_ceil_dist;
+                        if (pos.x < 0 || pos.y < 0)
+                            continue;
                         pos_i.x = (int)pos.x;
                         pos_i.y = (int)pos.y;
                         gid = m_level[LevelLayer::Ground](pos_i.x, pos_i.y);
