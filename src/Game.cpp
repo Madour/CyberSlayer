@@ -1,7 +1,10 @@
+#include <cstring>  // for memse
 #include "Game.hpp"
+
 #include "GameState.hpp"
 #include "states/TitleScreenState.hpp"
 #include "states/LevelState.hpp"
+
 
 Game::Game() {
     ns::Config::debug = false;
@@ -53,6 +56,17 @@ Game::Game() {
     */
     ///////////////////////////////////////////////////////
 
+    //WEAPONS
+    m_current_weapon = &m_laser_pistol;
+    m_weapon_selector = 0;
+    m_number_weapon = 4;
+
+}
+
+Game::~Game() {
+    for (auto level_object : m_level_objects) {
+        delete(level_object);
+    }
 }
 
 void Game::onEvent(const sf::Event& event) {
@@ -62,12 +76,44 @@ void Game::onEvent(const sf::Event& event) {
         if (event.key.code == sf::Keyboard::F) {
             toggleFullscreen();
         }
+        else if (event.key.code == sf::Keyboard::A) {
+            m_weapon_selector = (m_weapon_selector+1)%m_number_weapon;
+        }
+    }
+    else if (event.type == sf::Event::MouseWheelMoved) {
+        if (event.mouseWheel.delta > 0) {
+            m_weapon_selector = (m_weapon_selector+1)%m_number_weapon;
+        }
+        else {
+            m_weapon_selector = (m_weapon_selector-1)%m_number_weapon;
+        }
     }
 
     m_state->onEvent(event);
 }
 
 void Game::update() {
+    m_current_weapon->update(m_player, &m_camera);
+    m_gun_sprite = m_current_weapon->getSprite();
+    m_camera.setFovRad(m_camera.getBaseFovRad()/m_current_weapon->getFovZoom());
+
+    if (m_player->isRunning()) {
+        m_camera.setFovRad(m_camera.getBaseFovRad()*1.1f);
+    }
+
+    if (m_weapon_selector == 0) {
+        m_current_weapon = &m_laser_pistol;
+    }
+    else if (m_weapon_selector == 1) {
+        m_current_weapon = &m_laser_rifle;
+    }
+    else if (m_weapon_selector == 2) {
+        m_current_weapon = &m_sniper;
+    }
+    else if (m_weapon_selector == 3) {
+        m_current_weapon = &m_melee;
+    }
+
     m_state->update();
 }
 

@@ -70,6 +70,10 @@ auto Player::getEyePos() const -> float {
     return m_z+m_eye_pos;
 }
 
+bool Player::isRunning() {
+    return m_running;
+}
+
 void Player::update() {
     m_running = false;
     if (sf::Keyboard::isKeyPressed(Inputs::getButtonKey("run"))) {
