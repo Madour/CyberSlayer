@@ -47,27 +47,33 @@ void Level::load(const std::string& file_name) {
         }
     }
 
-    // store collisions
     auto tile_size = m_tiledmap.getTileSize().x;
+
     Level::collisions.clear();
-    for (const auto& rect : m_tiledmap.getObjectLayer("collisions")->allRectangles()) {
-        Level::collisions.emplace_back(
-            rect.getShape().getGlobalBounds().left/tile_size,
-            rect.getShape().getGlobalBounds().top/tile_size,
-            rect.getShape().getGlobalBounds().width/tile_size,
-            rect.getShape().getGlobalBounds().height/tile_size
-        );
+    if (m_tiledmap.hasLayer("collisions")) {
+        // store collisions
+        for (const auto& rect : m_tiledmap.getObjectLayer("collisions")->allRectangles()) {
+            Level::collisions.emplace_back(
+                    rect.getShape().getGlobalBounds().left/tile_size,
+                    rect.getShape().getGlobalBounds().top/tile_size,
+                    rect.getShape().getGlobalBounds().width/tile_size,
+                    rect.getShape().getGlobalBounds().height/tile_size
+            );
+        }
     }
 
-    // store items
-    for (const auto& point : m_tiledmap.getObjectLayer("items")->allPoints()) {
-        auto* item = ItemFactory::createFromName(point.getProperty<std::string>("name"));
-        if (item != nullptr) {
-            item->transform()->setPosition(point.getShape().getPosition()/(float)tile_size);
-            Level::items.emplace_back(item);
-        }
-        else {
-            ns_LOG("ItemFactory can not create item ", point.getProperty<std::string>("name"));
+    Level::items.clear();
+    if (m_tiledmap.hasLayer("items")) {
+        // store items
+        for (const auto& point : m_tiledmap.getObjectLayer("items")->allPoints()) {
+            auto* item = ItemFactory::createFromName(point.getProperty<std::string>("name"));
+            if (item != nullptr) {
+                item->transform()->setPosition(point.getShape().getPosition()/(float)tile_size);
+                Level::items.emplace_back(item);
+            }
+            else {
+                ns_LOG("ItemFactory can not create item ", point.getProperty<std::string>("name"));
+            }
         }
     }
 }
