@@ -56,7 +56,7 @@ private:
     std::vector<ns::FloatRect> m_tile_texture_rect;
 
     Player* m_player;
-    std::vector<std::unique_ptr<LevelObject>> m_level_objects;
+    std::vector<LevelObject*> m_level_objects;
 
     // Weapon
     int m_weapon_selector;
@@ -81,10 +81,8 @@ private:
 
     // ray caster drawables
     ns::VertexArray m_background;
-    ns::VertexArray m_sprites_quads;
-    sf::Uint8* m_transparency_mask;
-    sf::Texture m_transparency_mask_texture;
-    sf::Sprite m_transparency_mask_sprite;
+    ns::SpriteBatch* m_billboards;
+
     sf::Uint8* m_framebuffer;
     sf::Texture m_framebuffer_texture;
     sf::Sprite m_framebuffer_sprite;
