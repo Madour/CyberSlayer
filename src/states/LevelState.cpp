@@ -45,6 +45,10 @@ void LevelState::init() {
     m_player->transform()->setPosition(1.5f, 1.5f);
     m_level_objects.emplace_back(m_player);
 
+    m_current_weapon = &m_laser_pistol;
+    m_weapon_selector = 0;
+    m_number_weapon = 4;
+
     m_horizon = VIEW_HEIGHT;
 
     // create some Entities
@@ -145,6 +149,7 @@ void LevelState::init() {
 
     hud_scene->getDefaultLayer()->addRaw(&m_minimap_bg);
     hud_scene->getDefaultLayer()->add(help_text);
+    hud_scene->getDefaultLayer()->addRaw(&m_gun_sprite);
 
     // minimap scene
     auto* minimap_scene = game->getScene("minimap");
@@ -160,6 +165,19 @@ void LevelState::init() {
 }
 
 void LevelState::onEvent(const sf::Event& event) {
+    if (event.type == sf::Event::KeyPressed) {
+        if (event.key.code == sf::Keyboard::A) {
+            m_weapon_selector = (m_weapon_selector+1)%m_number_weapon;
+        }
+    }
+    else if (event.type == sf::Event::MouseWheelMoved) {
+        if (event.mouseWheel.delta > 0) {
+            m_weapon_selector = (m_weapon_selector+1)%m_number_weapon;
+        }
+        else {
+            m_weapon_selector = (m_weapon_selector-1)%m_number_weapon;
+        }
+    }
     if (game->getWindow().hasFocus())
         m_camera.onEvent(event);
 }
@@ -185,6 +203,28 @@ void LevelState::update() {
 
     game->getCamera("minimap")->setCenter(camera_pos2d*m_tile_size);
     game->getCamera("minimap")->setRotation(ns::to_degree(m_camera.getYaw())+ 90);
+
+    // weapon update
+    m_current_weapon->update(m_player, &m_camera);
+    m_gun_sprite = m_current_weapon->getSprite();
+    m_camera.setFovRad(m_camera.getBaseFovRad()/m_current_weapon->getFovZoom());
+
+    if (m_player->isRunning()) {
+        m_camera.setFovRad(m_camera.getBaseFovRad()*1.1f);
+    }
+
+    if (m_weapon_selector == 0) {
+        m_current_weapon = &m_laser_pistol;
+    }
+    else if (m_weapon_selector == 1) {
+        m_current_weapon = &m_laser_rifle;
+    }
+    else if (m_weapon_selector == 2) {
+        m_current_weapon = &m_sniper;
+    }
+    else if (m_weapon_selector == 3) {
+        m_current_weapon = &m_melee;
+    }
 }
 
 void LevelState::preRender() {

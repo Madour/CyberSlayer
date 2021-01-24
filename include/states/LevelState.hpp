@@ -8,6 +8,7 @@
 
 #include "Camera.hpp"
 #include "Level.hpp"
+#include "Weapon.hpp"
 #include "ent/Player.hpp"
 
 class LevelState : public GameState {
@@ -56,6 +57,17 @@ private:
 
     Player* m_player;
     std::vector<std::unique_ptr<LevelObject>> m_level_objects;
+
+    // Weapon
+    int m_weapon_selector;
+    int m_number_weapon;
+
+    Weapon* m_current_weapon;
+    Pistol m_laser_pistol;
+    Rifle m_laser_rifle;
+    Sniper m_sniper;
+    Melee m_melee;
+    sf::Sprite m_gun_sprite;
 
     // camera data
     Camera m_camera;
