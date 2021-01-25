@@ -20,8 +20,8 @@ public:
 
     GameState* m_state = nullptr;
 
-    sf::Music m_menu_music;
-    sf::Music m_level_music;
+    sf::Music menu_music;
+    sf::Music level_music;
 
 };
 

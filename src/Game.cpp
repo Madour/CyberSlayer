@@ -41,6 +41,9 @@ Game::Game() {
     minimap_cam->zoom(1.5f);
     ///////////////////////////////////////////////////////
 
+    menu_music.openFromFile("assets/main_menu.ogg");
+    level_music.openFromFile("assets/level_music.ogg");
+
     setState<TitleScreenState>();
 }
 

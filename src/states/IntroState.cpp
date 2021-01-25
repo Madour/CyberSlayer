@@ -19,8 +19,7 @@ void IntroState::init() {
     m_cooldown = sf::seconds(19);
     m_clk.restart();
 
-    game->m_level_music.openFromFile("assets/level_music.ogg");
-    game->m_level_music.play();
+    game->level_music.play();
 }
 
 void IntroState::onEvent(const sf::Event& event) {
