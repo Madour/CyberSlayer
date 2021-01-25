@@ -2,6 +2,7 @@
 
 #include "states/LevelState.hpp"
 #include "ent/Adventurer.hpp"
+#include "ent/Robot1.hpp"
 #include "Game.hpp"
 #include "Utils.hpp"
 
@@ -60,8 +61,10 @@ void LevelState::init() {
     m_horizon = VIEW_HEIGHT;
 
     // add level enemies to level objects list
-    for (auto* enemy : Level::getEnemies())
+    for (auto* enemy : Level::getEnemies()) {
         m_level_objects.push_back(enemy);
+        dynamic_cast<Robot1*>(enemy)->setTarget(m_player);
+    }
 
 
     // add level items to level objects list

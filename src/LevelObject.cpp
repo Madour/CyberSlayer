@@ -1,5 +1,6 @@
 #include "LevelObject.hpp"
 #include "ent/Adventurer.hpp"
+#include "ent/Robot1.hpp"
 
 LevelObject::LevelObject(const std::string& name) :
 ns::BaseEntity(name),
@@ -39,6 +40,7 @@ auto LevelObject::getDistanceToCamera() const -> float {
 
 std::map<std::string, std::function<LevelObject*(void)>> EnemyFactory::m_data = {
         {"Adventurer", []{return new Adventurer();}},
+        {"Robot", []{return new Robot1();}},
 };
 
 auto EnemyFactory::createFromName(const std::string& name) -> LevelObject* {
