@@ -1,4 +1,5 @@
 #include "Item.hpp"
+#include "Weapon.hpp"
 
 
 Item::Item(const ItemData& item_data) :
@@ -29,14 +30,19 @@ std::map<std::string, ItemData> ItemFactory::m_data = {
     {"Heal", {
         "Heal",
         {251, 315, 51, 34},
-        [](Player& player) {ns_LOG("Health collected");},
-        [](Player& player) {ns_LOG("Health used");}
+        [](Player& player) {player.setHP(player.getHP()+20);},
+        [](Player& player) {}
     }},
     {"Ammo", {
          "Ammo",
-         {240, 227, 77, 62},
-         [](Player& player) {ns_LOG("Ammo collected");},
-         [](Player& player) {ns_LOG("Ammo used");}
+         {21, 231, 66, 55},
+         [](Player& player) {
+             for (auto* weapon : player.allWeapons())
+                 if (weapon->getType() == Weapon::Type::Sniper) {
+                     weapon->setAmmo(weapon->getAmmo() + 4);
+                 }
+         },
+        [](Player& player) {},
     }},
 };
 

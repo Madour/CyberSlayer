@@ -14,6 +14,9 @@ LevelState::~LevelState() {
 void LevelState::init() {
     game->getWindow().setMouseCursorVisible(false);
 
+    m_audio_buffer_item_pick.loadFromFile("assets/sfx/pick_up.ogg");
+    m_audio_item_pick.setBuffer(m_audio_buffer_item_pick);
+
     auto& appview_size = game->getWindow().getAppView().getSize();
 
     m_level.load("assets/level1.tmx");
@@ -93,19 +96,11 @@ void LevelState::init() {
 
     ///////////////////////////////////////////////////////
     // HUD drawables
-    m_hp_bar.setSize({200, 10});
-    m_hp_bar.setPosition(20, 20);
-    m_hp_bar.setFillColor(sf::Color::Red);
-
-    auto* help_text = new sf::Text("Press B or N to decrease or increase FOV\nPress M to reset", ns::Arial::getFont());
-    help_text->setCharacterSize(15);
-    help_text->setOutlineColor(sf::Color::Black);
-    help_text->setOutlineThickness(1.f);
-    help_text->setPosition((appview_size.x - help_text->getGlobalBounds().width)/2, 10);
-
     m_minimap_bg.setSize({203, 203});
     m_minimap_bg.setFillColor(sf::Color(155, 155, 155));
     m_minimap_bg.setPosition(appview_size.x - 203, 0);
+
+    m_hud = new HUD(m_player);
     ///////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////
@@ -153,11 +148,12 @@ void LevelState::init() {
     hud_scene->getDefaultLayer()->clear();
 
     hud_scene->getDefaultLayer()->addRaw(&m_minimap_bg);
-    hud_scene->getDefaultLayer()->add(help_text);
     hud_scene->getDefaultLayer()->add(pistol);
     hud_scene->getDefaultLayer()->add(sniper);
     hud_scene->getDefaultLayer()->add(rifle);
     hud_scene->getDefaultLayer()->add(melee);
+
+    hud_scene->getDefaultLayer()->add(m_hud);
 
     // minimap scene
     auto* minimap_scene = game->getScene("minimap");
@@ -197,6 +193,7 @@ void LevelState::update() {
     for (unsigned i = 0; i < Level::getItems().size(); ++i) {
         if (ns::distance(Level::getItems()[i]->getPosition(), m_player->getPosition()) < 0.3) {
             Level::getItems()[i]->onCollect(*m_player);
+            m_audio_item_pick.play();
             for (auto it = m_level_objects.begin(); it != m_level_objects.end(); it++) {
                 if (*it == Level::getItems()[i]) {
                     m_level_objects.erase(it);
@@ -239,6 +236,8 @@ void LevelState::update() {
     if (m_player->isRunning()) {
         m_camera.setFovRad(m_camera.getBaseFovRad()*1.1f);
     }
+
+    m_hud->update();
 }
 
 void LevelState::preRender() {

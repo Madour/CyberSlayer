@@ -4,8 +4,16 @@ Weapon::Weapon() {
     m_attacking = false;
 }
 
+auto Weapon::getType() const -> Type {
+    return m_type;
+}
+
 auto Weapon::getAmmo() const -> int {
     return m_ammo;
+}
+
+auto Weapon::getMaxAmmo() const -> int {
+    return m_max_ammo;
 }
 
 void Weapon::setAmmo(int amo_amount) {
@@ -66,10 +74,14 @@ void Weapon::draw(sf::RenderTarget& target, sf::RenderStates states) const {
 
 
 Pistol::Pistol() {
-    m_ammo = 50;
+    m_type = Weapon::Type::Pistol;
+
+    m_max_ammo = 50;
+    m_ammo = m_max_ammo;
     m_damage = 10;
     m_range = 50;
     m_cooldown.setDuration(500);
+    m_reload_cd.setDuration(800);
 
     m_dispersion = 10;
     m_aiming = false;
@@ -122,7 +134,7 @@ void Pistol::attack() {
         m_attacking = true;
         m_sound.play();
         m_cooldown.reset();
-        m_ammo--;
+        m_ammo -= 5;
     }
 }
 
@@ -137,13 +149,23 @@ void Pistol::update() {
     }
 
     m_animplayer.update(m_sprite);
+
+    if (m_reload_cd.isReady()) {
+        m_reload_cd.reset();
+        if (m_ammo < m_max_ammo)
+            m_ammo++;
+    }
 }
 
 Rifle::Rifle() {
-    m_ammo = 500;
+    m_type = Weapon::Type::Rifle;
+
+    m_max_ammo = 200;
+    m_ammo = m_max_ammo;
     m_damage = 3;
     m_range = 30;
     m_cooldown.setDuration(100);
+    m_reload_cd.setDuration(500);
 
     m_dispersion = 10;
     m_aiming = false;
@@ -196,7 +218,7 @@ void Rifle::attack() {
         m_attacking = true;
         m_sound.play();
         m_cooldown.reset();
-        m_ammo--;
+        m_ammo-=2;
     }
 }
 
@@ -211,10 +233,19 @@ void Rifle::update() {
     }
 
     m_animplayer.update(m_sprite);
+
+    if (m_reload_cd.isReady()) {
+        m_reload_cd.reset();
+        if (m_ammo < m_max_ammo)
+            m_ammo++;
+    }
 }
 
 Sniper::Sniper() {
-    m_ammo = 500;
+    m_type = Weapon::Type::Sniper;
+
+    m_ammo = 10;
+    m_max_ammo = 20;
     m_damage = 30;
     m_range = 80;
     m_cooldown.setDuration(2100);
@@ -291,6 +322,8 @@ void Sniper::update() {
 }
 
 Melee::Melee() {
+    m_type = Weapon::Type::Melee;
+
     m_ammo = 1;
     m_damage = 7;
     m_range = 1;
