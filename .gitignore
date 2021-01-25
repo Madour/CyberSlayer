@@ -6,3 +6,4 @@ build-release
 .vscode
 docs/html
 docs/latex
+*.xcf
