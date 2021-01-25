@@ -40,9 +40,12 @@ Game::Game() {
     minimap_cam->zoom(1.5f);
     ///////////////////////////////////////////////////////
 
-    m_state = new LevelState();
-    m_state->init();
+    setState<LevelState>();
+}
 
+Game::~Game() {
+    if (m_state != nullptr)
+        delete(m_state);
 }
 
 void Game::onEvent(const sf::Event& event) {

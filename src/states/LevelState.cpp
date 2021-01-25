@@ -6,9 +6,9 @@
 #include "Utils.hpp"
 
 LevelState::~LevelState() {
-    delete(m_tile_texture_rect);
-    delete(m_framebuffer);
-    delete(m_player);
+    delete[] m_tile_texture_rect;
+    delete[] m_framebuffer;
+    delete m_player;
 }
 
 void LevelState::init() {

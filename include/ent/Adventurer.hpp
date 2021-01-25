@@ -5,6 +5,8 @@
 class Adventurer : public LevelObject {
 public:
     Adventurer();
+    ~Adventurer() override = default;
+
     auto getTextureRect() -> const ns::IntRect& override;
     void update() override;
 protected:
