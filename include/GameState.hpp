@@ -1,6 +1,7 @@
 #pragma once
 
 #include <NasNas.h>
+#include <SFML/Audio.hpp>
 
 using Inputs = ns::Config::Inputs;
 

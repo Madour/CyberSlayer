@@ -18,6 +18,7 @@ private:
 
     sf::Text m_title_text;
     sf::Sprite m_title_sprite;
+    sf::Text m_alpha_text;
     sf::Text m_play_text;
 };
 

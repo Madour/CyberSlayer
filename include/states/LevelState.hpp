@@ -4,6 +4,8 @@
 #include <stack>
 
 #include <NasNas.h>
+#include <SFML/Audio.hpp>
+
 #include "GameState.hpp"
 
 #include "Camera.hpp"

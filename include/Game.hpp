@@ -17,6 +17,9 @@ public:
     void setState();
 
     GameState* m_state;
+
+    sf::Music m_menu_music;
+    sf::Music m_level_music;
 };
 
 template <typename NewState>

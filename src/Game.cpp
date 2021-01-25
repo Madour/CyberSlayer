@@ -4,6 +4,7 @@
 #include "GameState.hpp"
 #include "states/TitleScreenState.hpp"
 #include "states/LevelState.hpp"
+#include "states/IntroState.hpp"
 
 
 Game::Game() {
