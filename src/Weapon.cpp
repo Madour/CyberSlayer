@@ -293,7 +293,7 @@ Melee::Melee() {
     m_ammo = 1;
     m_damage = 7;
     m_range = 30;
-    m_cooldown.setDuration(500);
+    m_cooldown.setDuration(150*4);
 
     m_aiming = false;
 

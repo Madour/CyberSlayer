@@ -97,6 +97,7 @@ void Player::addWeapon(Weapon* new_weapon) {
     m_weapons.push_back(new_weapon);
     if (m_active_weapon == nullptr) {
         m_active_weapon = new_weapon;
+        m_active_weapon_index = 0;
         new_weapon->show();
     }
 }
