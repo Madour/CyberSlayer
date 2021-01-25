@@ -208,8 +208,17 @@ void LevelState::update() {
     }
 
     if (m_player->getActiveWeapon()->isAttacking()) {
-        ns_LOG("Player shoot");
-        // check hit with enemies here
+        for (auto& billboard : m_billboards_bounds) {
+            if (billboard.distance < m_player->getActiveWeapon()->getRange()) {
+                if (billboard.bounds.contains(VIEW_WIDTH/2, VIEW_HEIGHT/2)) {
+                    ns_LOG("hit");
+                    break;
+                }
+                else {
+                    ns_LOG("miss");
+                }
+            }
+        }
     }
 
     //update camera
@@ -250,7 +259,7 @@ void LevelState::preRender() {
     doRayCast();
 
     memset(m_framebuffer, 0, VIEW_WIDTH * VIEW_HEIGHT * 4 * sizeof(sf::Uint8));
-    m_billboards->clear();
+
     for (unsigned i = 0; i < m_wall_hits_buffer.size(); ++i) {
         bool first = true;
         while (!m_wall_hits_buffer[i].empty()) {
@@ -354,6 +363,9 @@ void LevelState::preRender() {
         }
     }
 
+    m_billboards->clear();
+    m_billboards_bounds.clear();
+
     sf::Transformable tr;
     sf::IntRect tex_rect;
     for (auto& sprite_hit : m_sprite_hits_buffer) {
@@ -373,6 +385,14 @@ void LevelState::preRender() {
             tr.setScale(scalex, scaley);
             tr.setPosition((float)sprite_hit.ray_min, m_horizon - (ent_size.y + ent->getZ() + m_camera.getPosition3D().z)*ratio);
             m_billboards->draw(&ent->getTexture(), tex_rect, tr);
+            float width = tr.getScale().x * tex_rect.width;
+            float height = tr.getScale().y * tex_rect.height;
+            m_billboards_bounds.push_back({
+                      sprite_hit.distance,
+                      {tr.getPosition().x-width*0.1f, tr.getPosition().y,
+                       width*1.2f, height}
+            });
+
         }
         sprite_hit.visible = false;
         sprite_hit.t_min = 1.f;

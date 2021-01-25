@@ -16,7 +16,7 @@ auto Weapon::getDamage() const -> int {
     return m_damage;
 }
 
-auto Weapon::getRange() const -> int {
+auto Weapon::getRange() const -> float {
     return m_range;
 }
 
@@ -216,7 +216,7 @@ void Rifle::update() {
 Sniper::Sniper() {
     m_ammo = 500;
     m_damage = 30;
-    m_range = 30;
+    m_range = 80;
     m_cooldown.setDuration(2100);
 
     m_dispersion = 10;
@@ -293,7 +293,7 @@ void Sniper::update() {
 Melee::Melee() {
     m_ammo = 1;
     m_damage = 7;
-    m_range = 30;
+    m_range = 1;
     m_cooldown.setDuration(150*4);
 
     m_aiming = false;

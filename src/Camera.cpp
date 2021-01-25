@@ -2,7 +2,7 @@
 #include "Constants.hpp"
 
 Camera::Camera() :
-m_sensibility(0.5f),
+m_sensibility(0.15f),
 m_weapon_recoil(0.0f),
 m_base_fov(FOV),
 m_fov(FOV),

@@ -17,7 +17,7 @@ public :
     void setAmmo(int amount);
 
     auto getDamage() const -> int;
-    auto getRange() const -> int;
+    auto getRange() const -> float;
 
     void hide();
     void show();
@@ -37,7 +37,7 @@ public :
 protected :
     int m_hide = true;
     int m_damage;
-    int m_range;
+    float m_range;
     int m_ammo;
     bool m_attacking;
     bool m_aiming;

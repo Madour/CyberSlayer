@@ -47,6 +47,11 @@ private:
         bool visible=false;
     };
 
+    struct Billboard{
+        float distance;
+        sf::FloatRect bounds;
+    };
+
     Level m_level;
     sf::Vector2i m_level_size;
 
@@ -73,6 +78,7 @@ private:
     // ray caster drawables
     ns::VertexArray m_background;
     ns::SpriteBatch* m_billboards;
+    std::vector<Billboard> m_billboards_bounds;
 
     sf::Uint8* m_framebuffer;
     sf::Texture m_framebuffer_texture;
