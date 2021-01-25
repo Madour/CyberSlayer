@@ -10,9 +10,9 @@ To install, you need :
 
 - SFML2.5 installed
 - CMake version >= 3.10
-- A C++17 compiler
+- A C++17 compiler (gcc or msvc, not tested with clang)
 
-Run the following to clone and build 
+Run the following commands to clone and build 
 
 ```bash
 git clone --recurse https://github.com/Madour/CyberSlayer
@@ -22,6 +22,17 @@ cmake ..
 cmake --build . --config Release
 ```
 
-You'll get a bunch of warnings when compiling the framework (type conversion from float to int / int to float), you can ignore them.
+You'll maybe get some warnings when compiling (type conversion from float to int / int to float), you can ignore them.
+
+
+#### Game controls
+
+- Player movement : zqsd
+- Camera movement : mouse
+- Jump : space bar
+- Run : hold Left Shift
+- Shoot : left mouse click 
+- Aim : right mouse click 
+- Change weapon : mouse wheel
 
 ---
