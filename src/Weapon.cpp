@@ -112,7 +112,7 @@ Pistol::Pistol() {
     m_sprite.setPosition(VIEW_WIDTH/2, VIEW_HEIGHT+m_sprite.getGlobalBounds().height);
 
     // load weapon sounds
-    m_sound_buffer.loadFromFile("assets/laser_pistol.wav");
+    m_sound_buffer.loadFromFile("assets/sfx/laser_pistol.wav");
     m_sound.setBuffer(m_sound_buffer);
 }
 
@@ -196,7 +196,7 @@ Rifle::Rifle() {
     m_sprite.setPosition(VIEW_WIDTH/2, VIEW_HEIGHT+m_sprite.getGlobalBounds().height);
 
     // load weapon sounds
-    m_sound_buffer.loadFromFile("assets/laser_rifle.wav");
+    m_sound_buffer.loadFromFile("assets/sfx/laser_rifle.wav");
     m_sound.setBuffer(m_sound_buffer);
 }
 
@@ -279,8 +279,9 @@ Sniper::Sniper() {
     m_sprite.setPosition(VIEW_WIDTH/2, VIEW_HEIGHT+m_sprite.getGlobalBounds().height);
 
     // load weapon sounds
-    m_sound_buffer.loadFromFile("assets/sniper.wav");
+    m_sound_buffer.loadFromFile("assets/sfx/sniper.wav");
     m_sound.setBuffer(m_sound_buffer);
+    m_sound.setVolume(200);
 }
 
 float Sniper::getFovZoom() {
@@ -350,7 +351,7 @@ Melee::Melee() {
     m_sprite.setPosition(VIEW_WIDTH/2, VIEW_HEIGHT+m_sprite.getGlobalBounds().height);
 
     // load weapon sounds
-    m_sound_buffer.loadFromFile("assets/melee.wav");
+    m_sound_buffer.loadFromFile("assets/sfx/melee.wav");
     m_sound.setBuffer(m_sound_buffer);
 }
 

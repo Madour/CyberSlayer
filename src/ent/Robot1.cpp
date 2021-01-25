@@ -18,7 +18,7 @@ Robot1::Robot1() : LevelObject("Robot1") {
 
     m_cooldown_sound = sf::seconds(5+std::rand()%3);
     m_clk.restart();
-    m_sound_buffer.loadFromFile("assets/robot.wav");
+    m_sound_buffer.loadFromFile("assets/sfx/robot.wav");
     m_sound.setBuffer(m_sound_buffer);
 }
 

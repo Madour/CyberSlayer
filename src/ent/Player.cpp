@@ -34,7 +34,7 @@ Player::Player() : LevelObject("Player") {
 
     m_anim_player.play(m_spritesheet->getAnim("idle"));
 
-    m_sound_buffer_jump_landing.loadFromFile("assets/jump_landing.ogg");
+    m_sound_buffer_jump_landing.loadFromFile("assets/sfx/jump_landing.ogg");
     m_sound_jump_landing.setBuffer(m_sound_buffer_jump_landing);
 
     // acceleration, mass, friction
