@@ -115,6 +115,7 @@ void Player::update() {
     }
 
     // update active weapon
+    m_active_weapon->update();
     if (m_active_weapon->isShown()) {
         if (sf::Mouse::isButtonPressed(sf::Mouse::Right) && !m_running)
             m_active_weapon->aim(true);
@@ -127,7 +128,6 @@ void Player::update() {
     else if (all_hidden) {
         m_active_weapon->show();
     }
-    m_active_weapon->update();
 
     m_running = false;
     if (sf::Keyboard::isKeyPressed(Inputs::getButtonKey("run"))) {

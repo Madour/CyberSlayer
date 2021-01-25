@@ -43,23 +43,15 @@ Game::Game() {
     m_state = new LevelState();
     m_state->init();
 
-    ///////////////////////////////////////////////////////
-    // Add debug texts (F1 to activate debug mode)
-    /*ns::DebugTextInterface::font_size = 15;
-    ns::DebugTextInterface::outline_thickness = 1;
-    ns::DebugTextInterface::outline_color = sf::Color::Black;
-    addDebugText<sf::Vector3f>([&]{return m_camera.getPosition3D()/METER;}, "camera_pos (m):", {0, 0});
-    addDebugText<sf::Vector3f>([&]{return m_camera.getRotationDeg();}, "camera_rot :", {0, 20});
-    addDebugText<sf::Vector2f>([&]{return sf::Vector2f(std::cos(m_camera.getYaw()), std::sin(m_camera.getYaw()));}, "camera_dir :", {0, 40});
-    addDebugText<float>([&]{return m_depth_buffer[m_depth_buffer.size() / 2]/METER;}, "distance mid view (m):", {0, 60});
-    addDebugText<float>([&]{return ns::to_degree(m_camera.getFovRad()); }, "FOV :", {0, 80});
-    */
-    ///////////////////////////////////////////////////////
 }
 
 void Game::onEvent(const sf::Event& event) {
     ns::App::onEvent(event);
     m_state->onEvent(event);
+
+    if (event.type == sf::Event::KeyPressed)
+        if (event.key.code == sf::Keyboard::F)
+            toggleFullscreen();
 }
 
 void Game::update() {

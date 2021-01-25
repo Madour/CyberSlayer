@@ -52,19 +52,18 @@ void LevelState::init() {
     m_player->addWeapon(rifle);
     m_player->addWeapon(sniper);
     m_player->addWeapon(melee);
-    m_level_objects.emplace_back(m_player);
+    m_level_objects.push_back(m_player);
 
     m_horizon = VIEW_HEIGHT;
 
-    // create some Entities
-    for (int i = 0; i < 100; ++i) {
-        auto* ent = new Adventurer();
-        ent->transform()->setPosition(1.5f+std::rand()%18, 1.5f+std::rand()%18);
-        m_level_objects.emplace_back(ent);
-    }
+    // add level enemies to level objects list
+    for (auto* enemy : Level::getEnemies())
+        m_level_objects.push_back(enemy);
+
+
     // add level items to level objects list
-    for (auto& item : Level::getItems())
-        m_level_objects.emplace_back(item.get());
+    for (auto* item : Level::getItems())
+        m_level_objects.push_back(item);
 
     // resize the sprite hit buffer used by the ray caster
     m_sprite_hits_buffer.resize(m_level_objects.size());
@@ -199,13 +198,18 @@ void LevelState::update() {
         if (ns::distance(Level::getItems()[i]->getPosition(), m_player->getPosition()) < 0.3) {
             Level::getItems()[i]->onCollect(*m_player);
             for (auto it = m_level_objects.begin(); it != m_level_objects.end(); it++) {
-                if (*it == Level::getItems()[i].get()) {
+                if (*it == Level::getItems()[i]) {
                     m_level_objects.erase(it);
                     break;
                 }
             }
             Level::getItems().erase(Level::getItems().begin()+i--);
         }
+    }
+
+    if (m_player->getActiveWeapon()->isAttacking()) {
+        ns_LOG("Player shoot");
+        // check hit with enemies here
     }
 
     //update camera

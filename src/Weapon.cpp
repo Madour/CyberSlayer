@@ -57,6 +57,7 @@ void Weapon::update() {
         if (m_sprite.getPosition().y < VIEW_HEIGHT)
             m_sprite.setPosition(m_sprite.getPosition().x, VIEW_HEIGHT);
     }
+    m_attacking = false;
 }
 
 void Weapon::draw(sf::RenderTarget& target, sf::RenderStates states) const {
@@ -358,5 +359,7 @@ std::map<std::string, std::function<Weapon*(void)>> WeaponFactory::m_data = {
 };
 
 auto WeaponFactory::createFromName(const std::string& name) -> Weapon* {
-    return m_data[name]();
+    if (m_data.count(name) > 0)
+        return m_data.at(name)();
+    return nullptr;
 }

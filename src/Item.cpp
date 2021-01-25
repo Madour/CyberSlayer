@@ -25,7 +25,7 @@ void Item::update() {
     m_z += m_sign;
 }
 
-std::unordered_map<std::string, ItemData> ItemFactory::m_items_data = {
+std::map<std::string, ItemData> ItemFactory::m_data = {
     {"Heal", {
         "Heal",
         {251, 315, 51, 34},
@@ -41,9 +41,8 @@ std::unordered_map<std::string, ItemData> ItemFactory::m_items_data = {
 };
 
 auto ItemFactory::createFromName(const std::string& name) -> Item*{
-    auto iter = m_items_data.find(name);
-    if (iter != m_items_data.end()) {
-        return new Item(m_items_data.at(name));
+    if (m_data.count(name)>0) {
+        return new Item(m_data.at(name));
     }
     return nullptr;
 }
