@@ -5,6 +5,12 @@
 #include "Game.hpp"
 #include "Utils.hpp"
 
+LevelState::~LevelState() {
+    delete(m_tile_texture_rect);
+    delete(m_framebuffer);
+    delete(m_player);
+}
+
 void LevelState::init() {
     game->getWindow().setMouseCursorVisible(false);
 
@@ -17,7 +23,7 @@ void LevelState::init() {
     m_tileset_image = tileset->getTexture().copyToImage();
     m_tileset_pixels = m_tileset_image.getPixelsPtr();
     m_tileset_size = tileset->getTexture().getSize();
-    m_tile_texture_rect.resize(tileset->tilecount);
+    m_tile_texture_rect = new ns::FloatRect[tileset->tilecount];
     for (unsigned i = 0; i < tileset->tilecount; ++i) {
         m_tile_texture_rect[i] = tileset->getTileTextureRect(i);
     }
@@ -38,11 +44,15 @@ void LevelState::init() {
 
     m_player = new Player();
     m_player->transform()->setPosition(6.5f, 48.5f);
+    auto* pistol = WeaponFactory::createFromName("Pistol");
+    auto* rifle = WeaponFactory::createFromName("Rifle");
+    auto* sniper = WeaponFactory::createFromName("Sniper");
+    auto* melee = WeaponFactory::createFromName("Melee");
+    m_player->addWeapon(pistol);
+    m_player->addWeapon(rifle);
+    m_player->addWeapon(sniper);
+    m_player->addWeapon(melee);
     m_level_objects.emplace_back(m_player);
-
-    m_current_weapon = &m_laser_pistol;
-    m_weapon_selector = 0;
-    m_number_weapon = 4;
 
     m_horizon = VIEW_HEIGHT;
 
@@ -145,7 +155,10 @@ void LevelState::init() {
 
     hud_scene->getDefaultLayer()->addRaw(&m_minimap_bg);
     hud_scene->getDefaultLayer()->add(help_text);
-    hud_scene->getDefaultLayer()->addRaw(&m_gun_sprite);
+    hud_scene->getDefaultLayer()->add(pistol);
+    hud_scene->getDefaultLayer()->add(sniper);
+    hud_scene->getDefaultLayer()->add(rifle);
+    hud_scene->getDefaultLayer()->add(melee);
 
     // minimap scene
     auto* minimap_scene = game->getScene("minimap");
@@ -161,18 +174,11 @@ void LevelState::init() {
 }
 
 void LevelState::onEvent(const sf::Event& event) {
-    if (event.type == sf::Event::KeyPressed) {
-        if (event.key.code == sf::Keyboard::A) {
-            m_weapon_selector = (m_weapon_selector+1)%m_number_weapon;
-        }
-    }
-    else if (event.type == sf::Event::MouseWheelMoved) {
-        if (event.mouseWheel.delta > 0) {
-            m_weapon_selector = (m_weapon_selector+1)%m_number_weapon;
-        }
-        else {
-            m_weapon_selector = (m_weapon_selector-1)%m_number_weapon;
-        }
+    if (event.type == sf::Event::MouseWheelMoved) {
+        if (event.mouseWheel.delta > 0)
+            m_player->selectNextWeapon();
+        else
+            m_player->selectPrevWeapon();
     }
     if (game->getWindow().hasFocus())
         m_camera.onEvent(event);
@@ -189,7 +195,7 @@ void LevelState::update() {
     }
 
     // check if player can collect an item
-    for (int i = 0; i < Level::getItems().size(); ++i) {
+    for (unsigned i = 0; i < Level::getItems().size(); ++i) {
         if (ns::distance(Level::getItems()[i]->getPosition(), m_player->getPosition()) < 0.3) {
             Level::getItems()[i]->onCollect(*m_player);
             for (auto it = m_level_objects.begin(); it != m_level_objects.end(); it++) {
@@ -215,26 +221,10 @@ void LevelState::update() {
     game->getCamera("minimap")->setCenter(camera_pos2d*m_tile_size);
     game->getCamera("minimap")->setRotation(ns::to_degree(m_camera.getYaw())+ 90);
 
-    // weapon update
-    m_current_weapon->update(m_player, &m_camera);
-    m_gun_sprite = m_current_weapon->getSprite();
-    m_camera.setFovRad(m_camera.getBaseFovRad()/m_current_weapon->getFovZoom());
+    m_camera.setFovRad(m_camera.getBaseFovRad()/ m_player->getActiveWeapon()->getFovZoom());
 
     if (m_player->isRunning()) {
         m_camera.setFovRad(m_camera.getBaseFovRad()*1.1f);
-    }
-
-    if (m_weapon_selector == 0) {
-        m_current_weapon = &m_laser_pistol;
-    }
-    else if (m_weapon_selector == 1) {
-        m_current_weapon = &m_laser_rifle;
-    }
-    else if (m_weapon_selector == 2) {
-        m_current_weapon = &m_sniper;
-    }
-    else if (m_weapon_selector == 3) {
-        m_current_weapon = &m_melee;
     }
 }
 
@@ -266,7 +256,7 @@ void LevelState::preRender() {
             float ground = m_horizon +  (0 - m_camera.getPosition3D().z) * ratio + 1;
             int index;
             bool pr = true;
-            for (int y = ceiling; y < ground; y += 1) {
+            for (int y = (int)ceiling; y < ground; y += 1) {
                 if ( y < 0 || y >= VIEW_HEIGHT)
                     continue;
                 auto tex_x = static_cast<int>(wall_hit.tex_coo);

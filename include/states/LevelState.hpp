@@ -13,6 +13,8 @@
 
 class LevelState : public GameState {
 public:
+    ~LevelState() override;
+
     void init() override;
 
     void onEvent(const sf::Event& event) override;
@@ -53,21 +55,10 @@ private:
     sf::Image m_tileset_image;
     const sf::Uint8* m_tileset_pixels;
     sf::Vector2u m_tileset_size;
-    std::vector<ns::FloatRect> m_tile_texture_rect;
+    ns::FloatRect* m_tile_texture_rect;
 
     Player* m_player;
     std::vector<LevelObject*> m_level_objects;
-
-    // Weapon
-    int m_weapon_selector;
-    int m_number_weapon;
-
-    Weapon* m_current_weapon;
-    Pistol m_laser_pistol;
-    Rifle m_laser_rifle;
-    Sniper m_sniper;
-    Melee m_melee;
-    sf::Sprite m_gun_sprite;
 
     // camera data
     Camera m_camera;

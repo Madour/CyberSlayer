@@ -1,6 +1,7 @@
 #include "ent/Player.hpp"
 #include "Level.hpp"
 #include "Utils.hpp"
+#include "Weapon.hpp"
 
 using Inputs = ns::Config::Inputs;
 
@@ -62,19 +63,71 @@ void Player::setZ(float z) {
     m_z = z;
 }
 
-auto Player::getZ() const -> float {
-    return m_z;
-}
-
 auto Player::getEyePos() const -> float {
     return m_z+m_eye_pos;
 }
 
-bool Player::isRunning() {
+bool Player::isRunning() const {
     return m_running;
 }
 
+auto Player::getActiveWeapon() -> Weapon* {
+    return m_active_weapon;
+}
+
+void Player::selectNextWeapon() {
+    if (m_weapons.size() < 2 )
+        return;
+    m_active_weapon->hide();
+    // select next
+    m_active_weapon_index = (m_active_weapon_index+1u) % m_weapons.size();
+    m_active_weapon = m_weapons[m_active_weapon_index];
+}
+
+void Player::selectPrevWeapon() {
+    if (m_weapons.size() < 2 )
+        return;
+    m_active_weapon->hide();
+    // select prev
+    m_active_weapon_index = m_active_weapon_index == 0 ? m_weapons.size()-1u : m_active_weapon_index-1u;
+    m_active_weapon = m_weapons[m_active_weapon_index];
+}
+
+void Player::addWeapon(Weapon* new_weapon) {
+    m_weapons.push_back(new_weapon);
+    if (m_active_weapon == nullptr) {
+        m_active_weapon = new_weapon;
+        new_weapon->show();
+    }
+}
+
 void Player::update() {
+    // slide up and down when changing weapon anim
+    bool all_hidden = true;
+    for (unsigned i = 0; i < m_weapons.size(); ++i) {
+        if (i != m_active_weapon_index) {
+            if (!m_weapons[i]->isHidden()) {
+                all_hidden = false;
+                m_weapons[i]->update();
+            }
+        }
+    }
+
+    // update active weapon
+    if (m_active_weapon->isShown()) {
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Right) && !m_running)
+            m_active_weapon->aim(true);
+        else
+            m_active_weapon->aim(false);
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+            m_active_weapon->attack();
+        }
+    }
+    else if (all_hidden) {
+        m_active_weapon->show();
+    }
+    m_active_weapon->update();
+
     m_running = false;
     if (sf::Keyboard::isKeyPressed(Inputs::getButtonKey("run"))) {
         m_running = true;

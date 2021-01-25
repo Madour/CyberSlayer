@@ -40,7 +40,7 @@ Game::Game() {
     minimap_cam->zoom(1.5f);
     ///////////////////////////////////////////////////////
 
-    m_state = new TitleScreenState();
+    m_state = new LevelState();
     m_state->init();
 
     ///////////////////////////////////////////////////////
