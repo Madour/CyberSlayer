@@ -1,41 +1,27 @@
-## NasNas game template
+# Cyber Slayer
 
-This repository is a template you can use to setup a project that uses [NasNas](https://github.com/Madour/NasNas) game framework.
+## A futuristic cyberpunk inspired FPS game
 
-*Requirements :*
+> Coming Soon
 
-- SFML2.5 installed.
-- CMake >=3.10 installed (check with `cmake --version`).
+#### Install
 
-Follow these 3 steps :
+To install, you need : 
 
-1. Clone this repository and update NasNas :
-```bash
-git clone --recurse https://github.com/Madour/NasNas-game-template MyNewGame
-cd MyNewGame
-git submodule update --remote
-```
-2. Open `CMakeLists.txt` file and set your custom configurations in the "User Configuration" section.
+- SFML2.5 installed
+- CMake version >= 3.10
+- A C++17 compiler
 
-3. Now, you are ready to build :
+Run the following to clone and build 
 
 ```bash
+git clone --recurse https://github.com/Madour/CyberSlayer
+cd CyberSlayer
 mkdir build && cd build
 cmake ..
-cmake --build . -j4
+cmake --build . --config Release
 ```
 
-(You can refer to the **[Build](https://github.com/Madour/NasNas#build)** section for the list of possible cmake options you can use)
+You'll get a bunch of warnings when compiling the framework (type conversion from float to int / int to float), you can ignore them.
 
-
-If everything went fine, go ahead and run the binary file in `build/bin`. You'll see a black window with "Hello World !" displayed.
-
-Now you are ready to use NasNas to create awesome games :tada:!
-
-# 
-
-A complete **[tutorial](https://github.com/Madour/NasNas/wiki)** is available to get you started ! 
-
-#
-
-If you got errors during compilation, please open a [new GitHub Issue](https://github.com/Madour/NasNas/issues), I'll try to help you :)
+---
