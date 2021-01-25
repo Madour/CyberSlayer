@@ -11,10 +11,13 @@
 #include "Camera.hpp"
 #include "Level.hpp"
 #include "Weapon.hpp"
+#include "HUD.hpp"
 #include "ent/Player.hpp"
 
 class LevelState : public GameState {
 public:
+    ~LevelState() override;
+
     void init() override;
 
     void onEvent(const sf::Event& event) override;
@@ -47,6 +50,11 @@ private:
         bool visible=false;
     };
 
+    struct Billboard{
+        float distance;
+        sf::FloatRect bounds;
+    };
+
     Level m_level;
     sf::Vector2i m_level_size;
 
@@ -55,21 +63,10 @@ private:
     sf::Image m_tileset_image;
     const sf::Uint8* m_tileset_pixels;
     sf::Vector2u m_tileset_size;
-    std::vector<ns::FloatRect> m_tile_texture_rect;
+    ns::FloatRect* m_tile_texture_rect;
 
     Player* m_player;
     std::vector<LevelObject*> m_level_objects;
-
-    // Weapon
-    int m_weapon_selector;
-    int m_number_weapon;
-
-    Weapon* m_current_weapon;
-    Pistol m_laser_pistol;
-    Rifle m_laser_rifle;
-    Sniper m_sniper;
-    Melee m_melee;
-    sf::Sprite m_gun_sprite;
 
     // camera data
     Camera m_camera;
@@ -84,18 +81,23 @@ private:
     // ray caster drawables
     ns::VertexArray m_background;
     ns::SpriteBatch* m_billboards;
+    std::vector<Billboard> m_billboards_bounds;
 
     sf::Uint8* m_framebuffer;
     sf::Texture m_framebuffer_texture;
     sf::Sprite m_framebuffer_sprite;
 
     // HUD drawables
-    sf::RectangleShape m_hp_bar;
+    HUD* m_hud;
     sf::RectangleShape m_minimap_bg;
 
     // minimap drawables
     ns::VertexArray m_minimap_entities;
     ns::VertexArray m_minimap_rays;
     ns::VertexArray m_minimap_grid;
+
+    // audio buffer
+    sf::SoundBuffer m_audio_buffer_item_pick;
+    sf::Sound m_audio_item_pick;
 };
 

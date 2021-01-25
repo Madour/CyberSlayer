@@ -1,435 +1,398 @@
 #include "Weapon.hpp"
 
 Weapon::Weapon() {
-    m_clk.restart();
     m_attacking = false;
 }
 
-int Weapon::getDamage() {
+auto Weapon::getType() const -> Type {
+    return m_type;
+}
+
+auto Weapon::getAmmo() const -> int {
+    return m_ammo;
+}
+
+auto Weapon::getMaxAmmo() const -> int {
+    return m_max_ammo;
+}
+
+void Weapon::setAmmo(int amo_amount) {
+    m_ammo = amo_amount;
+}
+
+auto Weapon::getDamage() const -> int {
     return m_damage;
 }
 
-int Weapon::getRange() {
+auto Weapon::getRange() const -> float {
     return m_range;
 }
 
-
-
-sf::Sprite Weapon::getSprite() {
-    return m_current_sprite;
+auto Weapon::isAttacking() const -> bool {
+    return m_attacking;
 }
 
+void Weapon::hide() {
+    m_hide = true;
+}
+
+void Weapon::show() {
+    m_hide = false;
+}
+
+auto Weapon::isHidden() -> bool {
+    return m_sprite.getPosition().y > VIEW_HEIGHT + m_sprite.getGlobalBounds().height;
+}
+
+auto Weapon::isShown() -> bool {
+    return m_sprite.getPosition().y == VIEW_HEIGHT;
+}
+
+auto Weapon::getPosition() const -> sf::Vector2f {
+    return m_sprite.getPosition();
+}
+
+auto Weapon::getGlobalBounds() const -> ns::FloatRect {
+    return ns::FloatRect(m_sprite.getGlobalBounds());
+}
+
+void Weapon::update() {
+    if (m_hide && !isHidden()) {
+        m_sprite.move(0, 25);
+    }
+    else if (!m_hide && !isShown()) {
+        m_sprite.move(0, -25);
+        if (m_sprite.getPosition().y < VIEW_HEIGHT)
+            m_sprite.setPosition(m_sprite.getPosition().x, VIEW_HEIGHT);
+    }
+    m_attacking = false;
+}
+
+void Weapon::draw(sf::RenderTarget& target, sf::RenderStates states) const {
+    target.draw(m_sprite, states);
+}
+
+
 Pistol::Pistol() {
+    m_type = Weapon::Type::Pistol;
+
+    m_max_ammo = 50;
+    m_ammo = m_max_ammo;
     m_damage = 10;
     m_range = 50;
-    m_cooldown = sf::milliseconds(500);
-    m_cooldown_sprite = sf::milliseconds(100);
+    m_cooldown.setDuration(500);
+    m_reload_cd.setDuration(800);
 
-    m_amo = 50;
-    m_aiming = false;
     m_dispersion = 10;
-    m_fov_zoom = 1.f;
-
+    m_aiming = false;
     m_recoil = 0.07f;
-    
-    for (int i=0 ; i<4 ; i++) {
-        m_spritesheet[i].setTexture(ns::Res::in("sprites").getTexture("laser_pistol.png"));
-        m_spritesheet[i].setScale(sf::Vector2f(2.3f, 2.3f));
-    }
 
+    // create spritesheet
+    m_spritesheet = std::make_unique<ns::Spritesheet>("pistol", ns::Res::in("sprites").getTexture("laser_pistol.png"));
+    m_spritesheet->setGrid({125, 150}, 2);
 
-    m_spritesheet[0].setTextureRect(sf::IntRect(0, 0, 120, 150));
-    m_spritesheet[0].setPosition(500, 200);
-    m_spritesheet[1].setTextureRect(sf::IntRect(132, 0, 250, 150));
-    m_spritesheet[1].setPosition(500, 200);
-    m_spritesheet[2].setTextureRect(sf::IntRect(0, 154, 100, 300));
-    m_spritesheet[2].setPosition(420, 200);
-    m_spritesheet[3].setTextureRect(sf::IntRect(143, 154, 254, 300));
-    m_spritesheet[3].setPosition(420, 200);
+    m_spritesheet->addAnim("idle", 0, 1, 100, {-43, 150});
+    m_spritesheet->getAnim("idle").loop = false;
 
-    m_current_sprite = m_spritesheet[0];
+    m_spritesheet->addAnim("shoot", 1, 1, 100, {0, 150});
+    m_spritesheet->getAnim("shoot").loop = false;
 
+    m_spritesheet->addAnim("aim", 2, 1, 100, {23, 150});
+    m_spritesheet->getAnim("aim").loop = false;
+
+    m_spritesheet->addAnim("aimshoot", 3, 1, 100, {69, 150});
+    m_spritesheet->getAnim("aimshoot").loop = false;
+
+    // setup animation player and sprite
+    m_animplayer.play(m_spritesheet->getAnim("idle"));
+
+    m_sprite.setTexture(*m_spritesheet->texture);
+    m_sprite.setTextureRect(m_animplayer.getActiveFrame().rectangle);
+    m_sprite.setScale(2.3f, 2.3f);
+    m_sprite.setPosition(VIEW_WIDTH/2, VIEW_HEIGHT+m_sprite.getGlobalBounds().height);
+
+    // load weapon sounds
     m_sound_buffer.loadFromFile("assets/laser_pistol.wav");
     m_sound.setBuffer(m_sound_buffer);
 }
 
-int Pistol::getAmo() {
-    return m_amo;
-}
-
-void Pistol::setAmo(int amo_amount) {
-    m_amo = amo_amount;
-}
-
 float Pistol::getFovZoom() {
-    return m_fov_zoom;
+    return m_aiming ? 1.2f : 1.f;
 }
 
-void Pistol::attack(Camera* camera) {
-    if (!m_attacking && m_amo > 0) {
-        m_sound.play();
-        m_clk.restart();
-        m_amo--;
-        camera->setRecoil(m_recoil);
-    }
-
+void Pistol::aim(bool v) {
+    m_aiming = v;
 }
 
-void Pistol::update(Player* player, Camera* camera) {
+void Pistol::attack() {
+    if (m_cooldown.isReady() && m_ammo > 0) {
+        if (m_aiming)
+            m_animplayer.play(m_spritesheet->getAnim("aimshoot"));
+        else
+            m_animplayer.play(m_spritesheet->getAnim("shoot"));
 
-    if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-        attack(camera);
-    }
-    if (sf::Mouse::isButtonPressed(sf::Mouse::Right) && !player->isRunning()) {
-        aim();
-    }
-    else {
-        noAim();
-    }
-
-    if (m_clk.getElapsedTime() <= m_cooldown) {
         m_attacking = true;
-    }
-    else {
-        m_attacking = false;
-    }
-
-    if (m_aiming) {
-        if (m_attacking && m_cooldown_sprite >= m_clk.getElapsedTime()) {
-            m_current_sprite = m_spritesheet[3];
-        }
-        else {
-            m_current_sprite = m_spritesheet[2];
-        }
-    }
-    else {
-        if (m_attacking && m_cooldown_sprite >= m_clk.getElapsedTime()) {
-            m_current_sprite = m_spritesheet[1];
-        }
-        else {
-            m_current_sprite = m_spritesheet[0];
-        }
+        m_sound.play();
+        m_cooldown.reset();
+        m_ammo -= 5;
     }
 }
 
-void Pistol::aim() {
-    m_aiming = true;
-    m_fov_zoom = 1.2f;
-    m_current_sprite = m_spritesheet[2];
-    m_dispersion = 0;
-}
+void Pistol::update() {
+    Weapon::update();
 
-void Pistol::noAim() {
-    m_aiming = false;
-    m_fov_zoom = 1.f;
-    m_current_sprite = m_spritesheet[0];
-    m_dispersion = 10;
+    if (!m_animplayer.isPlaying()) {
+        if (m_aiming)
+            m_animplayer.play(m_spritesheet->getAnim("aim"));
+        else
+            m_animplayer.play(m_spritesheet->getAnim("idle"));
+    }
+
+    m_animplayer.update(m_sprite);
+
+    if (m_reload_cd.isReady()) {
+        m_reload_cd.reset();
+        if (m_ammo < m_max_ammo)
+            m_ammo++;
+    }
 }
 
 Rifle::Rifle() {
+    m_type = Weapon::Type::Rifle;
+
+    m_max_ammo = 200;
+    m_ammo = m_max_ammo;
     m_damage = 3;
     m_range = 30;
-    m_cooldown = sf::milliseconds(100);
-    m_cooldown_sprite = sf::milliseconds(50);;
+    m_cooldown.setDuration(100);
+    m_reload_cd.setDuration(500);
 
-    m_amo = 500;
+    m_dispersion = 10;
     m_aiming = false;
-    m_dispersion = 30;
-    m_fov_zoom = 1.f;
+    m_recoil = 0.f;
 
-    m_recoil = 0.03f;
-    
-    for (int i=0 ; i<4 ; i++) {
-        m_spritesheet[i].setTexture(ns::Res::in("sprites").getTexture("laser_rifle.png"));
-    }
+    // create spritesheet
+    m_spritesheet = std::make_unique<ns::Spritesheet>("pistol", ns::Res::in("sprites").getTexture("laser_rifle.png"));
+    m_spritesheet->setGrid({200, 257}, 2);
 
-    m_spritesheet[0].setTextureRect(sf::IntRect(0, 0, 189, 143));
-    m_spritesheet[0].setScale(sf::Vector2f(2.f, 2.f));
-    m_spritesheet[0].setPosition(470, 255);
-    m_spritesheet[1].setTextureRect(sf::IntRect(211, 0, 400, 143));
-    m_spritesheet[1].setScale(sf::Vector2f(2.2f, 2.2f));
-    m_spritesheet[1].setPosition(470, 255);
-    m_spritesheet[2].setTextureRect(sf::IntRect(0, 144, 169, 400));
-    m_spritesheet[2].setScale(sf::Vector2f(2.f, 2.f));
-    m_spritesheet[2].setPosition(290, 70);
-    m_spritesheet[3].setTextureRect(sf::IntRect(209, 144, 400, 400));
-    m_spritesheet[3].setScale(sf::Vector2f(2.f, 2.f));
-    m_spritesheet[3].setPosition(290, 70);
+    m_spritesheet->addAnim("idle", 0, 1, 50, {20, 257});
+    m_spritesheet->getAnim("idle").loop = false;
 
-    m_current_sprite = m_spritesheet[0];
+    m_spritesheet->addAnim("shoot", 1, 1, 50, {20 , 257});
+    m_spritesheet->getAnim("shoot").loop = false;
 
+    m_spritesheet->addAnim("aim", 2, 1, 50, {97, 257});
+    m_spritesheet->getAnim("aim").loop = false;
+
+    m_spritesheet->addAnim("aimshoot", 3, 1, 50, {109, 257});
+    m_spritesheet->getAnim("aimshoot").loop = false;
+
+    // setup animation player and sprite
+    m_animplayer.play(m_spritesheet->getAnim("idle"));
+
+    m_sprite.setTexture(*m_spritesheet->texture);
+    m_sprite.setTextureRect(m_animplayer.getActiveFrame().rectangle);
+    m_sprite.setScale(2.f, 2.f);
+    m_sprite.setPosition(VIEW_WIDTH/2, VIEW_HEIGHT+m_sprite.getGlobalBounds().height);
+
+    // load weapon sounds
     m_sound_buffer.loadFromFile("assets/laser_rifle.wav");
     m_sound.setBuffer(m_sound_buffer);
 }
 
-int Rifle::getAmo() {
-    return m_amo;
-}
-
-void Rifle::setAmo(int amo_amount) {
-    m_amo = amo_amount;
-}
-
 float Rifle::getFovZoom() {
-    return m_fov_zoom;
+    return m_aiming ? 3.f : 1.f;
 }
 
-void Rifle::attack(Camera* camera) {
-    if (!m_attacking && m_amo > 0) {
-        m_sound.play();
-        m_clk.restart();
-        m_amo--;
-        camera->setRecoil(m_recoil);
-    }
-
+void Rifle::aim(bool v) {
+    m_aiming = v;
 }
 
-void Rifle::update(Player* player, Camera* camera) {
+void Rifle::attack() {
+    if (m_cooldown.isReady() && m_ammo > 0) {
+        if (m_aiming)
+            m_animplayer.play(m_spritesheet->getAnim("aimshoot"));
+        else
+            m_animplayer.play(m_spritesheet->getAnim("shoot"));
 
-    if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-        attack(camera);
-    }
-    if (sf::Mouse::isButtonPressed(sf::Mouse::Right) && !player->isRunning()) {
-        aim();
-    }
-    else {
-        noAim();
-    }
-
-    if (m_clk.getElapsedTime() <= m_cooldown) {
         m_attacking = true;
-    }
-    else {
-        m_attacking = false;
-    }
-
-    if (m_aiming) {
-        if (m_attacking && m_cooldown_sprite >= m_clk.getElapsedTime()) {
-            m_current_sprite = m_spritesheet[3];
-        }
-        else {
-            m_current_sprite = m_spritesheet[2];
-        }
-    }
-    else {
-        if (m_attacking && m_cooldown_sprite >= m_clk.getElapsedTime()) {
-            m_current_sprite = m_spritesheet[1];
-        }
-        else {
-            m_current_sprite = m_spritesheet[0];
-        }
+        m_sound.play();
+        m_cooldown.reset();
+        m_ammo-=2;
     }
 }
 
-void Rifle::aim() {
-    if (!m_aiming) {
-        m_aiming = true;
-        m_fov_zoom = 1.8f;
-        m_current_sprite = m_spritesheet[2];
-        m_dispersion = 0;
-    }
-    
-}
+void Rifle::update() {
+    Weapon::update();
 
-void Rifle::noAim() {
-    m_aiming = false;
-    m_fov_zoom = 1.f;
-    m_current_sprite = m_spritesheet[0];
-    m_dispersion = 10;
+    if (!m_animplayer.isPlaying()) {
+        if (m_aiming)
+            m_animplayer.play(m_spritesheet->getAnim("aim"));
+        else
+            m_animplayer.play(m_spritesheet->getAnim("idle"));
+    }
+
+    m_animplayer.update(m_sprite);
+
+    if (m_reload_cd.isReady()) {
+        m_reload_cd.reset();
+        if (m_ammo < m_max_ammo)
+            m_ammo++;
+    }
 }
 
 Sniper::Sniper() {
-    m_damage = 50;
-    m_range = 100;
-    m_cooldown = sf::milliseconds(2000);
-    
+    m_type = Weapon::Type::Sniper;
 
-    m_amo = 10;
+    m_ammo = 10;
+    m_max_ammo = 20;
+    m_damage = 30;
+    m_range = 80;
+    m_cooldown.setDuration(2100);
+
+    m_dispersion = 10;
     m_aiming = false;
-    m_dispersion = 50;
-    m_fov_zoom = 6.f;
+    m_recoil = 0.f;
 
-    m_recoil = 0.1f;
-    
-    for (int i=0 ; i<5 ; i++) {
-        m_cooldown_sprite[i] = sf::milliseconds((i+1)*300);
-    }
-    m_cooldown_sprite[0] = sf::milliseconds(100);
+    // create spritesheet
+    m_spritesheet = std::make_unique<ns::Spritesheet>("pistol", ns::Res::in("sprites").getTexture("sniper.png"));
+    m_spritesheet->setGrid({250, 250}, 6);
 
-    m_spritesheet[0].setTexture(ns::Res::in("sprites").getTexture("sniper_0.png"));
-    m_spritesheet[0].setScale(sf::Vector2f(2.f, 2.f));
-    m_spritesheet[0].setPosition(470, 220);
+    m_spritesheet->addAnim("idle", 1, 1, 50, {25, 220});
+    m_spritesheet->getAnim("idle").loop = false;
 
-    m_spritesheet[1].setTexture(ns::Res::in("sprites").getTexture("sniper_1.png"));
-    m_spritesheet[1].setScale(sf::Vector2f(2.f, 2.f));
-    m_spritesheet[1].setPosition(470, 220);
+    m_spritesheet->addAnim("shoot", 0, 5, {250, 200, 200, 200, 200}, {{22 , 220}, {25, 220}, {25, 220}, {25, 220}, {25, 220}});
+    m_spritesheet->getAnim("shoot").loop = false;
 
-    m_spritesheet[2].setTexture(ns::Res::in("sprites").getTexture("sniper_2.png"));
-    m_spritesheet[2].setScale(sf::Vector2f(2.f, 2.f));
-    m_spritesheet[2].setPosition(470, 220);
+    m_spritesheet->addAnim("aim", 5, 1, 50, {125, 250});
+    m_spritesheet->getAnim("aim").loop = false;
 
-    m_spritesheet[3].setTexture(ns::Res::in("sprites").getTexture("sniper_3.png"));
-    m_spritesheet[3].setScale(sf::Vector2f(2.f, 2.f));
-    m_spritesheet[3].setPosition(470, 220);
+    m_spritesheet->addAnim("aimshoot", {0, 2, 3, 4, 1}, {250, 200, 200, 200, 200}, {25, 200});
+    m_spritesheet->getAnim("aimshoot").loop = false;
 
-    m_spritesheet[4].setTexture(ns::Res::in("sprites").getTexture("sniper_4.png"));
-    m_spritesheet[4].setScale(sf::Vector2f(2.f, 2.f));
-    m_spritesheet[4].setPosition(470, 220);
+    // setup animation player and sprite
+    m_animplayer.play(m_spritesheet->getAnim("idle"));
 
+    m_sprite.setTexture(*m_spritesheet->texture);
+    m_sprite.setTextureRect(m_animplayer.getActiveFrame().rectangle);
+    m_sprite.setScale(2.f, 2.f);
+    m_sprite.setPosition(VIEW_WIDTH/2, VIEW_HEIGHT+m_sprite.getGlobalBounds().height);
 
-    m_spritesheet[5].setTexture(ns::Res::in("sprites").getTexture("sniper_5.png"));
-    m_spritesheet[5].setScale(sf::Vector2f(0.5f, 0.5f));
-    m_spritesheet[5].setPosition(220,30);
-
-    m_current_sprite = m_spritesheet[0];
-
+    // load weapon sounds
     m_sound_buffer.loadFromFile("assets/sniper.wav");
     m_sound.setBuffer(m_sound_buffer);
 }
 
-int Sniper::getAmo() {
-    return m_amo;
-}
-
-void Sniper::setAmo(int amo_amount) {
-    m_amo = amo_amount;
-}
-
 float Sniper::getFovZoom() {
-    return m_fov_zoom;
+    if (m_animplayer.getAnim()->getName() == "aimshoot")
+        return 1.f;
+    else
+        return m_aiming ? 6.f : 1.f;
 }
 
-void Sniper::attack(Camera* camera) {
-    if (!m_attacking && m_amo > 0) {
-        m_sound.play();
-        m_clk.restart();
-        m_amo--;
-        camera->setRecoil(m_recoil);
-    }
-
+void Sniper::aim(bool v) {
+    m_aiming = v;
 }
 
-void Sniper::update(Player* player, Camera* camera) {
+void Sniper::attack() {
+    if (m_cooldown.isReady() && m_ammo > 0) {
+        if (m_aiming)
+            m_animplayer.play(m_spritesheet->getAnim("aimshoot"));
+        else
+            m_animplayer.play(m_spritesheet->getAnim("shoot"));
 
-    if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-        attack(camera);
-    }
-    if (sf::Mouse::isButtonPressed(sf::Mouse::Right) && !player->isRunning() && !m_attacking) {
-        aim();
-    }
-    else {
-        noAim();
-    }
-
-    if (m_clk.getElapsedTime() <= m_cooldown) {
         m_attacking = true;
-    }
-    else {
-        m_attacking = false;
-    }
-
-    if (m_aiming) {
-        m_current_sprite = m_spritesheet[5];
-    }
-    else {
-        if (m_attacking && m_cooldown_sprite[0] >= m_clk.getElapsedTime() && m_cooldown_sprite[1] > m_clk.getElapsedTime()) {
-            m_current_sprite = m_spritesheet[1];
-        }
-        else if (m_cooldown_sprite[1] >= m_clk.getElapsedTime() && m_cooldown_sprite[2] > m_clk.getElapsedTime()) {
-            m_current_sprite = m_spritesheet[2];
-        }
-        else if (m_cooldown_sprite[2] >= m_clk.getElapsedTime() && m_cooldown_sprite[3] > m_clk.getElapsedTime()) {
-            m_current_sprite = m_spritesheet[3];
-        }
-        else if (m_cooldown_sprite[3] >= m_clk.getElapsedTime() && m_cooldown_sprite[4] > m_clk.getElapsedTime()) {
-            m_current_sprite = m_spritesheet[4];
-        }
-        else if (m_cooldown_sprite[4] >= m_clk.getElapsedTime() && m_cooldown_sprite[4]+m_cooldown_sprite[4] > m_clk.getElapsedTime()) {
-            m_current_sprite = m_spritesheet[2];
-        }
-        else {
-            m_current_sprite = m_spritesheet[0];
-        }
+        m_sound.play();
+        m_cooldown.reset();
+        m_ammo--;
     }
 }
 
-void Sniper::aim() {
-    if (!m_aiming) {
-        m_aiming = true;
-        m_fov_zoom = 4.f;
-        m_dispersion = 0;
-        m_current_sprite = m_spritesheet[5];
-    }
-    
-}
+void Sniper::update() {
+    Weapon::update();
 
-void Sniper::noAim() {
-    m_aiming = false;
-    m_fov_zoom = 1.f;
-    m_dispersion = 10;
-    m_current_sprite = m_spritesheet[1];
+    if (!m_animplayer.isPlaying()) {
+        if (m_aiming)
+            m_animplayer.play(m_spritesheet->getAnim("aim"));
+        else
+            m_animplayer.play(m_spritesheet->getAnim("idle"));
+    }
+
+    m_animplayer.update(m_sprite);
 }
 
 Melee::Melee() {
-    m_damage = 10;
-    m_range = 5;
-    m_cooldown = sf::milliseconds(500);
-    
-    
-    m_cooldown_sprite[0] = sf::milliseconds(50);
-    m_cooldown_sprite[1] = sf::milliseconds(100);
-    m_cooldown_sprite[2] = sf::milliseconds(300);
+    m_type = Weapon::Type::Melee;
 
-    m_spritesheet[0].setTexture(ns::Res::in("sprites").getTexture("melee_0.png"));
-    m_spritesheet[0].setScale(sf::Vector2f(2.f, 2.f));
-    m_spritesheet[0].setPosition(250, 150);
+    m_ammo = 1;
+    m_damage = 7;
+    m_range = 1;
+    m_cooldown.setDuration(150*4);
 
-    m_spritesheet[1].setTexture(ns::Res::in("sprites").getTexture("melee_1.png"));
-    m_spritesheet[1].setScale(sf::Vector2f(2.f, 2.f));
-    m_spritesheet[1].setPosition(250, 150);
+    m_aiming = false;
 
-    m_spritesheet[2].setTexture(ns::Res::in("sprites").getTexture("melee_2.png"));
-    m_spritesheet[2].setScale(sf::Vector2f(2.f, 2.f));
-    m_spritesheet[2].setPosition(250, 150);
+    // create spritesheet
+    m_spritesheet = std::make_unique<ns::Spritesheet>("pistol", ns::Res::in("sprites").getTexture("melee.png"));
+    m_spritesheet->setGrid({250, 250}, 6);
 
-    m_current_sprite = m_spritesheet[0];
+    m_spritesheet->addAnim("idle", 0, 1, 50, {165, 250});
+    m_spritesheet->getAnim("idle").loop = false;
 
+    m_spritesheet->addAnim("attack", {1, 2, 1, 0}, 150, {165, 250});
+    m_spritesheet->getAnim("attack").loop = false;
+
+    // setup animation player and sprite
+    m_animplayer.play(m_spritesheet->getAnim("idle"));
+
+    m_sprite.setTexture(*m_spritesheet->texture);
+    m_sprite.setTextureRect(m_animplayer.getActiveFrame().rectangle);
+    m_sprite.setScale(2.f, 2.f);
+    m_sprite.setPosition(VIEW_WIDTH/2, VIEW_HEIGHT+m_sprite.getGlobalBounds().height);
+
+    // load weapon sounds
     m_sound_buffer.loadFromFile("assets/melee.wav");
     m_sound.setBuffer(m_sound_buffer);
 }
 
-void Melee::attack(Camera* camera) {
-    if (!m_attacking) {
-        m_sound.play();
-        m_clk.restart();
-    }
-}
-
 float Melee::getFovZoom() {
-    return 1.f;
+    if (m_animplayer.getAnim()->getName() == "aimshoot")
+        return 1.f;
+    else
+        return m_aiming ? 6.f : 1.f;
 }
 
-void Melee::update(Player* player, Camera* camera) {
+void Melee::aim(bool v) {
+}
 
-    if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-        attack(camera);
-    }
-    if (m_clk.getElapsedTime() <= m_cooldown) {
+void Melee::attack() {
+    if (m_cooldown.isReady() && m_ammo > 0) {
+        m_animplayer.play(m_spritesheet->getAnim("attack"));
+
         m_attacking = true;
+        m_sound.play();
+        m_cooldown.reset();
     }
-    else {
-        m_attacking = false;
+}
+
+void Melee::update() {
+    Weapon::update();
+
+    if (!m_animplayer.isPlaying()) {
+        m_animplayer.play(m_spritesheet->getAnim("idle"));
     }
 
-    if (m_attacking) {
-        if (m_cooldown_sprite[0] >= m_clk.getElapsedTime() && m_cooldown_sprite[1] > m_clk.getElapsedTime()) {
-            m_current_sprite = m_spritesheet[1];
-        }
-        else if (m_cooldown_sprite[1] >= m_clk.getElapsedTime() && m_cooldown_sprite[2] > m_clk.getElapsedTime()) {
-            m_current_sprite = m_spritesheet[2];
-        }
-    }
-    else {
-        m_current_sprite = m_spritesheet[0];
-    }
+    m_animplayer.update(m_sprite);
+}
+
+std::map<std::string, std::function<Weapon*(void)>> WeaponFactory::m_data = {
+        {"Pistol", []{return new Pistol();}},
+        {"Rifle", []{return new Rifle();}},
+        {"Sniper", []{return new Sniper();}},
+        {"Melee", []{return new Melee();}},
+};
+
+auto WeaponFactory::createFromName(const std::string& name) -> Weapon* {
+    if (m_data.count(name) > 0)
+        return m_data.at(name)();
+    return nullptr;
 }

@@ -1,4 +1,5 @@
 #include "Item.hpp"
+#include "Weapon.hpp"
 
 
 Item::Item(const ItemData& item_data) :
@@ -25,25 +26,29 @@ void Item::update() {
     m_z += m_sign;
 }
 
-std::unordered_map<std::string, ItemData> ItemFactory::m_items_data = {
+std::map<std::string, ItemData> ItemFactory::m_data = {
     {"Heal", {
         "Heal",
         {251, 315, 51, 34},
-        [](Player& player) {ns_LOG("Health collected");},
-        [](Player& player) {ns_LOG("Health used");}
+        [](Player& player) {player.setHP(player.getHP()+20);},
+        [](Player& player) {}
     }},
     {"Ammo", {
          "Ammo",
-         {240, 227, 77, 62},
-         [](Player& player) {ns_LOG("Ammo collected");},
-         [](Player& player) {ns_LOG("Ammo used");}
+         {21, 231, 66, 55},
+         [](Player& player) {
+             for (auto* weapon : player.allWeapons())
+                 if (weapon->getType() == Weapon::Type::Sniper) {
+                     weapon->setAmmo(weapon->getAmmo() + 4);
+                 }
+         },
+        [](Player& player) {},
     }},
 };
 
 auto ItemFactory::createFromName(const std::string& name) -> Item*{
-    auto iter = m_items_data.find(name);
-    if (iter != m_items_data.end()) {
-        return new Item(m_items_data.at(name));
+    if (m_data.count(name)>0) {
+        return new Item(m_data.at(name));
     }
     return nullptr;
 }

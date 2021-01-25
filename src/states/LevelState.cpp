@@ -2,11 +2,21 @@
 
 #include "states/LevelState.hpp"
 #include "ent/Adventurer.hpp"
+#include "ent/Robot1.hpp"
 #include "Game.hpp"
 #include "Utils.hpp"
 
+LevelState::~LevelState() {
+    delete[] m_tile_texture_rect;
+    delete[] m_framebuffer;
+    delete m_player;
+}
+
 void LevelState::init() {
     game->getWindow().setMouseCursorVisible(false);
+
+    m_audio_buffer_item_pick.loadFromFile("assets/sfx/pick_up.ogg");
+    m_audio_item_pick.setBuffer(m_audio_buffer_item_pick);
 
     auto& appview_size = game->getWindow().getAppView().getSize();
 
@@ -17,7 +27,7 @@ void LevelState::init() {
     m_tileset_image = tileset->getTexture().copyToImage();
     m_tileset_pixels = m_tileset_image.getPixelsPtr();
     m_tileset_size = tileset->getTexture().getSize();
-    m_tile_texture_rect.resize(tileset->tilecount);
+    m_tile_texture_rect = new ns::FloatRect[tileset->tilecount];
     for (unsigned i = 0; i < tileset->tilecount; ++i) {
         m_tile_texture_rect[i] = tileset->getTileTextureRect(i);
     }
@@ -38,23 +48,28 @@ void LevelState::init() {
 
     m_player = new Player();
     m_player->transform()->setPosition(6.5f, 48.5f);
-    m_level_objects.emplace_back(m_player);
-
-    m_current_weapon = &m_laser_pistol;
-    m_weapon_selector = 0;
-    m_number_weapon = 4;
+    auto* pistol = WeaponFactory::createFromName("Pistol");
+    auto* rifle = WeaponFactory::createFromName("Rifle");
+    auto* sniper = WeaponFactory::createFromName("Sniper");
+    auto* melee = WeaponFactory::createFromName("Melee");
+    m_player->addWeapon(pistol);
+    m_player->addWeapon(rifle);
+    m_player->addWeapon(sniper);
+    m_player->addWeapon(melee);
+    m_level_objects.push_back(m_player);
 
     m_horizon = VIEW_HEIGHT;
 
-    // create some Entities
-    for (int i = 0; i < 100; ++i) {
-        auto* ent = new Adventurer();
-        ent->transform()->setPosition(1.5f+std::rand()%18, 1.5f+std::rand()%18);
-        m_level_objects.emplace_back(ent);
+    // add level enemies to level objects list
+    for (auto* enemy : Level::getEnemies()) {
+        m_level_objects.push_back(enemy);
+        dynamic_cast<Robot1*>(enemy)->setTarget(m_player);
     }
+
+
     // add level items to level objects list
-    for (auto& item : Level::getItems())
-        m_level_objects.emplace_back(item.get());
+    for (auto* item : Level::getItems())
+        m_level_objects.push_back(item);
 
     // resize the sprite hit buffer used by the ray caster
     m_sprite_hits_buffer.resize(m_level_objects.size());
@@ -84,19 +99,11 @@ void LevelState::init() {
 
     ///////////////////////////////////////////////////////
     // HUD drawables
-    m_hp_bar.setSize({200, 10});
-    m_hp_bar.setPosition(20, 20);
-    m_hp_bar.setFillColor(sf::Color::Red);
-
-    auto* help_text = new sf::Text("Press B or N to decrease or increase FOV\nPress M to reset", ns::Arial::getFont());
-    help_text->setCharacterSize(15);
-    help_text->setOutlineColor(sf::Color::Black);
-    help_text->setOutlineThickness(1.f);
-    help_text->setPosition((appview_size.x - help_text->getGlobalBounds().width)/2, 10);
-
     m_minimap_bg.setSize({203, 203});
     m_minimap_bg.setFillColor(sf::Color(155, 155, 155));
     m_minimap_bg.setPosition(appview_size.x - 203, 0);
+
+    m_hud = new HUD(m_player);
     ///////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////
@@ -144,8 +151,12 @@ void LevelState::init() {
     hud_scene->getDefaultLayer()->clear();
 
     hud_scene->getDefaultLayer()->addRaw(&m_minimap_bg);
-    hud_scene->getDefaultLayer()->add(help_text);
-    hud_scene->getDefaultLayer()->addRaw(&m_gun_sprite);
+    hud_scene->getDefaultLayer()->add(pistol);
+    hud_scene->getDefaultLayer()->add(sniper);
+    hud_scene->getDefaultLayer()->add(rifle);
+    hud_scene->getDefaultLayer()->add(melee);
+
+    hud_scene->getDefaultLayer()->add(m_hud);
 
     // minimap scene
     auto* minimap_scene = game->getScene("minimap");
@@ -161,18 +172,11 @@ void LevelState::init() {
 }
 
 void LevelState::onEvent(const sf::Event& event) {
-    if (event.type == sf::Event::KeyPressed) {
-        if (event.key.code == sf::Keyboard::A) {
-            m_weapon_selector = (m_weapon_selector+1)%m_number_weapon;
-        }
-    }
-    else if (event.type == sf::Event::MouseWheelMoved) {
-        if (event.mouseWheel.delta > 0) {
-            m_weapon_selector = (m_weapon_selector+1)%m_number_weapon;
-        }
-        else {
-            m_weapon_selector = (m_weapon_selector-1)%m_number_weapon;
-        }
+    if (event.type == sf::Event::MouseWheelMoved) {
+        if (event.mouseWheel.delta > 0)
+            m_player->selectNextWeapon();
+        else
+            m_player->selectPrevWeapon();
     }
     if (game->getWindow().hasFocus())
         m_camera.onEvent(event);
@@ -189,16 +193,31 @@ void LevelState::update() {
     }
 
     // check if player can collect an item
-    for (int i = 0; i < Level::getItems().size(); ++i) {
+    for (unsigned i = 0; i < Level::getItems().size(); ++i) {
         if (ns::distance(Level::getItems()[i]->getPosition(), m_player->getPosition()) < 0.3) {
             Level::getItems()[i]->onCollect(*m_player);
+            m_audio_item_pick.play();
             for (auto it = m_level_objects.begin(); it != m_level_objects.end(); it++) {
-                if (*it == Level::getItems()[i].get()) {
+                if (*it == Level::getItems()[i]) {
                     m_level_objects.erase(it);
                     break;
                 }
             }
             Level::getItems().erase(Level::getItems().begin()+i--);
+        }
+    }
+
+    if (m_player->getActiveWeapon()->isAttacking()) {
+        for (auto& billboard : m_billboards_bounds) {
+            if (billboard.distance < m_player->getActiveWeapon()->getRange()) {
+                if (billboard.bounds.contains(VIEW_WIDTH/2, VIEW_HEIGHT/2)) {
+                    ns_LOG("hit");
+                    break;
+                }
+                else {
+                    ns_LOG("miss");
+                }
+            }
         }
     }
 
@@ -215,27 +234,13 @@ void LevelState::update() {
     game->getCamera("minimap")->setCenter(camera_pos2d*m_tile_size);
     game->getCamera("minimap")->setRotation(ns::to_degree(m_camera.getYaw())+ 90);
 
-    // weapon update
-    m_current_weapon->update(m_player, &m_camera);
-    m_gun_sprite = m_current_weapon->getSprite();
-    m_camera.setFovRad(m_camera.getBaseFovRad()/m_current_weapon->getFovZoom());
+    m_camera.setFovRad(m_camera.getBaseFovRad()/ m_player->getActiveWeapon()->getFovZoom());
 
     if (m_player->isRunning()) {
         m_camera.setFovRad(m_camera.getBaseFovRad()*1.1f);
     }
 
-    if (m_weapon_selector == 0) {
-        m_current_weapon = &m_laser_pistol;
-    }
-    else if (m_weapon_selector == 1) {
-        m_current_weapon = &m_laser_rifle;
-    }
-    else if (m_weapon_selector == 2) {
-        m_current_weapon = &m_sniper;
-    }
-    else if (m_weapon_selector == 3) {
-        m_current_weapon = &m_melee;
-    }
+    m_hud->update();
 }
 
 void LevelState::preRender() {
@@ -256,7 +261,7 @@ void LevelState::preRender() {
     doRayCast();
 
     memset(m_framebuffer, 0, VIEW_WIDTH * VIEW_HEIGHT * 4 * sizeof(sf::Uint8));
-    m_billboards->clear();
+
     for (unsigned i = 0; i < m_wall_hits_buffer.size(); ++i) {
         bool first = true;
         while (!m_wall_hits_buffer[i].empty()) {
@@ -266,7 +271,7 @@ void LevelState::preRender() {
             float ground = m_horizon +  (0 - m_camera.getPosition3D().z) * ratio + 1;
             int index;
             bool pr = true;
-            for (int y = ceiling; y < ground; y += 1) {
+            for (int y = (int)ceiling; y < ground; y += 1) {
                 if ( y < 0 || y >= VIEW_HEIGHT)
                     continue;
                 auto tex_x = static_cast<int>(wall_hit.tex_coo);
@@ -360,6 +365,9 @@ void LevelState::preRender() {
         }
     }
 
+    m_billboards->clear();
+    m_billboards_bounds.clear();
+
     sf::Transformable tr;
     sf::IntRect tex_rect;
     for (auto& sprite_hit : m_sprite_hits_buffer) {
@@ -379,6 +387,14 @@ void LevelState::preRender() {
             tr.setScale(scalex, scaley);
             tr.setPosition((float)sprite_hit.ray_min, m_horizon - (ent_size.y + ent->getZ() + m_camera.getPosition3D().z)*ratio);
             m_billboards->draw(&ent->getTexture(), tex_rect, tr);
+            float width = tr.getScale().x * tex_rect.width;
+            float height = tr.getScale().y * tex_rect.height;
+            m_billboards_bounds.push_back({
+                      sprite_hit.distance,
+                      {tr.getPosition().x-width*0.1f, tr.getPosition().y,
+                       width*1.2f, height}
+            });
+
         }
         sprite_hit.visible = false;
         sprite_hit.t_min = 1.f;

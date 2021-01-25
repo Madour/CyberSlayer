@@ -28,4 +28,10 @@ private:
     float m_distance_to_camera = 0.f;
 };
 
+class EnemyFactory {
+public:
+    static auto createFromName(const std::string& name) -> LevelObject*;
 
+private:
+    static std::map<std::string, std::function<LevelObject*(void)>> m_data;
+};

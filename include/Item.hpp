@@ -27,8 +27,9 @@ private:
 
 class ItemFactory {
 public:
+    ItemFactory() = delete;
     static auto createFromName(const std::string& name) -> Item*;
 
 private:
-    static std::unordered_map<std::string, ItemData> m_items_data;
+    static std::map<std::string, ItemData> m_data;
 };

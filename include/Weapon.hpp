@@ -6,114 +6,132 @@
 
 #include "ent/Player.hpp"
 #include "Camera.hpp"
+#include "Cooldown.hpp"
 
-class Weapon {
+
+class Weapon : public ns::Drawable {
 public :
+    enum class Type {
+        Pistol,
+        Rifle,
+        Sniper,
+        Melee
+    };
     Weapon();
 
-    int getDamage();
-    int getRange();
+    auto getType() const -> Type;
 
-    virtual float getFovZoom(){return 1.f;}
-    virtual void attack(Camera* camera){}
-    virtual void update(Player* player, Camera* camera){}
+    auto getAmmo() const -> int;
+    auto getMaxAmmo() const -> int;
+    void setAmmo(int amount);
 
-    sf::Sprite getSprite();
+    auto getDamage() const -> int;
+    auto getRange() const -> float;
+
+    void hide();
+    void show();
+    auto isHidden() -> bool;
+    auto isShown() -> bool;
+
+    auto isAttacking() const -> bool;
+
+    virtual auto getFovZoom() -> float { return 1.f; }
+    virtual void aim(bool) = 0;
+    virtual void attack() = 0;
+    virtual void update();
+
+    auto getPosition() const -> sf::Vector2f override;
+    auto getGlobalBounds() const -> ns::FloatRect override;
 
 protected :
-    int m_damage;
-    int m_range;
-
+    Type m_type;
+    int m_hide = true;
+    int m_damage{};
+    float m_range{};
+    int m_max_ammo = 1;
+    int m_ammo{};
     bool m_attacking;
+    bool m_aiming{};
 
-    sf::Clock m_clk;
-    sf::Time m_cooldown;
+    Cooldown m_cooldown;
+
+    std::unique_ptr<ns::Spritesheet> m_spritesheet;
+    ns::AnimPlayer m_animplayer;
+    sf::Sprite m_sprite;
 
     sf::SoundBuffer m_sound_buffer;
     sf::Sound m_sound;
 
-    sf::Sprite m_current_sprite;
+private:
+    void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 };
 
 class Pistol : public Weapon {
 public :
     Pistol();
-    int getAmo();
-    void setAmo(int amo_amount);
     float getFovZoom() override;
-    void attack(Camera* camera) override;
-    void update(Player* player, Camera* camera) override;
-    void aim();
-    void noAim();
+
+    void aim(bool) override;
+    void attack() override;
+    void update() override;
 
 private :
-    int m_amo;
+    Cooldown m_reload_cd;
     int m_dispersion;
     bool m_aiming;
-    float m_fov_zoom;
     float m_recoil;
-
-    sf::Time m_cooldown_sprite;
-
-    sf::Sprite m_spritesheet[4];
 };
+
 
 class Rifle : public Weapon {
 public :
     Rifle();
-    int getAmo();
-    void setAmo(int amo_amount);
     float getFovZoom() override;
-    void attack(Camera* camera) override;
-    void update(Player* player, Camera* camera) override;
-    void aim();
-    void noAim();
+
+    void aim(bool) override;
+    void attack() override;
+    void update() override;
 
 private :
-    int m_amo;
+    Cooldown m_reload_cd;
     int m_dispersion;
     bool m_aiming;
-    float m_fov_zoom;
     float m_recoil;
-
-    sf::Time m_cooldown_sprite;
-
-    sf::Sprite m_spritesheet[4];
 };
 
 class Sniper : public Weapon {
 public :
     Sniper();
-    int getAmo();
-    void setAmo(int amo_amount);
     float getFovZoom() override;
-    void attack(Camera* camera) override;
-    void update(Player* player, Camera* camera) override;
-    void aim();
-    void noAim();
+
+    void aim(bool) override;
+    void attack() override;
+    void update() override;
 
 private :
-    int m_amo;
+    int m_max_ammo = 500;
+    Cooldown m_reload_cd;
     int m_dispersion;
     bool m_aiming;
-    float m_fov_zoom;
     float m_recoil;
-
-    sf::Time m_cooldown_sprite[5];
-
-    sf::Sprite m_spritesheet[6];
 };
 
 class Melee : public Weapon {
 public :
     Melee();
     float getFovZoom() override;
-    void attack(Camera* camera) override;
-    void update(Player* player, Camera* camera) override;
+    void aim(bool) override;
+    void attack() override;
+    void update() override;
+};
 
-private :
 
-    sf::Time m_cooldown_sprite[3];
 
-    sf::Sprite m_spritesheet[3];
+class WeaponFactory {
+public:
+    WeaponFactory() = delete;
+    static auto createFromName(const std::string& name) -> Weapon*;
+
+private:
+    static std::map<std::string, std::function<Weapon*(void)>> m_data;
 };
