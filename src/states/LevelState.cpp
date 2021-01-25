@@ -305,7 +305,7 @@ void LevelState::preRender() {
                 float ceil_ratio = (-m_camera.getPosition3D().z - WALL_HEIGHT) * proj_plane_dist / wall_hit.fisheye_correction;
                 float ground_ratio = -m_camera.getPosition3D().z * proj_plane_dist / wall_hit.fisheye_correction;
                 for (int y = 0; y < VIEW_HEIGHT; y+=1) {
-                    if ( y < ceiling) {
+                    if ( y < (int)ceiling+1) {
                         grnd_ceil_dist = ceil_ratio / (y - m_horizon);
                         pos.x = cam_pos2d.x + wall_hit.ray_dir.x * grnd_ceil_dist;
                         pos.y = cam_pos2d.y + wall_hit.ray_dir.y * grnd_ceil_dist;
@@ -317,8 +317,8 @@ void LevelState::preRender() {
                         if (gid == 0)
                             continue;
                         auto& tex_rect = m_tile_texture_rect[gid - firstgid];
-                        uv.x = pos.x - pos_i.x;
-                        uv.y = pos.y - pos_i.y;
+                        uv.x = std::abs(pos.x - pos_i.x);
+                        uv.y = std::abs(pos.y - pos_i.y);
                         tex_pos.x = static_cast<int>(tex_rect.left + m_tile_size * uv.x);
                         tex_pos.y = static_cast<int>(tex_rect.top + m_tile_size * uv.y);
                         texture_pix = m_tileset_pixels+(tex_pos.x + tex_pos.y*m_tileset_size.x)*4;
@@ -332,7 +332,7 @@ void LevelState::preRender() {
                     else if (ceiling < y && y < ground) {
                         y = static_cast<int>(ground);
                     }
-                    else if (y >= ground) {
+                    else if (y >= (int)ground) {
                         grnd_ceil_dist = ground_ratio / (y - m_horizon);
                         pos.x = cam_pos2d.x + wall_hit.ray_dir.x * grnd_ceil_dist;
                         pos.y = cam_pos2d.y + wall_hit.ray_dir.y * grnd_ceil_dist;
@@ -344,8 +344,8 @@ void LevelState::preRender() {
                         if (gid == 0)
                             continue;
                         auto& tex_rect = m_tile_texture_rect[gid - firstgid];
-                        uv.x = pos.x - pos_i.x;
-                        uv.y = pos.y - pos_i.y;
+                        uv.x = std::abs(pos.x - pos_i.x);
+                        uv.y = std::abs(pos.y - pos_i.y);
                         tex_pos.x = static_cast<int>(tex_rect.left + m_tile_size * uv.x);
                         tex_pos.y = static_cast<int>(tex_rect.top + m_tile_size * uv.y);
                         texture_pix = m_tileset_pixels+(tex_pos.x + tex_pos.y*m_tileset_size.x)*4;
