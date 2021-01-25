@@ -1,5 +1,6 @@
 #include "states/TitleScreenState.hpp"
 #include "states/LevelState.hpp"
+#include "states/IntroState.hpp"
 #include "transitions/FadeTransitions.hpp"
 #include "transitions/DoorTransition.hpp"
 #include "Game.hpp"
@@ -47,6 +48,16 @@ void TitleScreenState::init() {
     text_size = {m_play_text.getGlobalBounds().width, m_play_text.getGlobalBounds().height};
     m_play_text.setPosition((VIEW_WIDTH - text_size.x)/2, (VIEW_HEIGHT - text_size.y)/2 + 50);
 
+    m_alpha_text.setString("ALPHA  VERSION - doesnt  represent  the  final  look  of  the  game");
+    m_alpha_text.setFont(ns::Res::in("fonts").getFont("True_Lies.ttf"));
+    m_alpha_text.setCharacterSize(20);
+    m_alpha_text.setStyle(sf::Text::Style::Bold);
+    m_alpha_text.setOutlineThickness(3.f);
+    m_alpha_text.setOutlineColor(sf::Color(100, 50, 100, 0));
+    m_alpha_text.setFillColor({255, 255, 255, 0});
+    text_size = {m_alpha_text.getGlobalBounds().width, m_alpha_text.getGlobalBounds().height};
+    m_alpha_text.setPosition((VIEW_WIDTH - text_size.x)/2, (VIEW_HEIGHT - text_size.y)/2 + 200);
+
     auto* bg_scene = game->getScene("bg");
     bg_scene->getDefaultLayer()->clear();
 
@@ -54,6 +65,11 @@ void TitleScreenState::init() {
     bg_scene->getDefaultLayer()->addRaw(&m_bg_sprite2);
     bg_scene->getDefaultLayer()->addRaw(&m_title_sprite);
     bg_scene->getDefaultLayer()->addRaw(&m_play_text);
+    bg_scene->getDefaultLayer()->addRaw(&m_alpha_text);
+
+
+    game->m_menu_music.openFromFile("assets/menu_music.ogg");
+    game->m_menu_music.play();
 }
 
 void TitleScreenState::onEvent(const sf::Event& event) {
@@ -62,10 +78,10 @@ void TitleScreenState::onEvent(const sf::Event& event) {
         if (m_play_text.getFillColor().a == 255) {
             if (m_play_text.getGlobalBounds().contains(mouse_pos)) {
                 if (ns::Transition::list.empty()) {
+                    game->m_menu_music.stop();
                     auto* tr_out = new FadeOut();
                     tr_out->setOnEndCallback([&]{
-                        (new DoorOpenTransition())->start();
-                        game->setState<LevelState>();
+                        game->setState<IntroState>();
                     });
                     tr_out->start();
                 }
@@ -95,6 +111,8 @@ void TitleScreenState::update() {
                 if (m_play_text.getFillColor().a != 255) {
                     m_play_text.setFillColor(m_play_text.getFillColor() + sf::Color(0, 0, 0, 10));
                     m_play_text.setOutlineColor(m_play_text.getOutlineColor() + sf::Color(0, 0, 0, 5));
+                    m_alpha_text.setFillColor(m_play_text.getFillColor() + sf::Color(0, 0, 0, 10));
+                    m_alpha_text.setOutlineColor(m_play_text.getOutlineColor() + sf::Color(0, 0, 0, 5));
                 }
             }
         }
