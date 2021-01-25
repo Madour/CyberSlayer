@@ -30,6 +30,8 @@ void IntroState::onEvent(const sf::Event& event) {
 void IntroState::update() {
     if (m_clk.getElapsedTime() >= m_cooldown) {
         if (ns::Transition::list.empty()) {
+            auto* tr = new DoorOpenTransition();
+            tr->start();
             game->setState<LevelState>();
         }
     }

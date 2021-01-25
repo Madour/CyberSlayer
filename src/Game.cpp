@@ -41,7 +41,7 @@ Game::Game() {
     minimap_cam->zoom(1.5f);
     ///////////////////////////////////////////////////////
 
-    setState<LevelState>();
+    setState<TitleScreenState>();
 }
 
 Game::~Game() {

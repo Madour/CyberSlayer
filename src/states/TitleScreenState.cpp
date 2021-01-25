@@ -68,7 +68,7 @@ void TitleScreenState::init() {
     bg_scene->getDefaultLayer()->addRaw(&m_alpha_text);
 
 
-    game->m_menu_music.openFromFile("assets/menu_music.ogg");
+    game->m_menu_music.openFromFile("assets/main_menu.ogg");
     game->m_menu_music.play();
 }
 
@@ -78,9 +78,9 @@ void TitleScreenState::onEvent(const sf::Event& event) {
         if (m_play_text.getFillColor().a == 255) {
             if (m_play_text.getGlobalBounds().contains(mouse_pos)) {
                 if (ns::Transition::list.empty()) {
-                    game->m_menu_music.stop();
                     auto* tr_out = new FadeOut();
                     tr_out->setOnEndCallback([&]{
+                        game->m_menu_music.stop();
                         game->setState<IntroState>();
                     });
                     tr_out->start();

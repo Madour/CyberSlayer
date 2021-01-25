@@ -45,6 +45,6 @@ private:
 
     sf::Vector3f m_position;    // position in fake 3D space
     sf::Vector2f m_position2d;  // position in 2D space
-    sf::Vector3f m_rotation;    // rotation in radians
+    sf::Vector3f m_rotation = {0, 0, -HALF_PI};    // rotation in radians
 };
 
