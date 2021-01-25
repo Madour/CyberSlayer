@@ -9,6 +9,7 @@
 #include "Camera.hpp"
 #include "Level.hpp"
 #include "Weapon.hpp"
+#include "HUD.hpp"
 #include "ent/Player.hpp"
 
 class LevelState : public GameState {
@@ -85,12 +86,16 @@ private:
     sf::Sprite m_framebuffer_sprite;
 
     // HUD drawables
-    sf::RectangleShape m_hp_bar;
+    HUD* m_hud;
     sf::RectangleShape m_minimap_bg;
 
     // minimap drawables
     ns::VertexArray m_minimap_entities;
     ns::VertexArray m_minimap_rays;
     ns::VertexArray m_minimap_grid;
+
+    // audio buffer
+    sf::SoundBuffer m_audio_buffer_item_pick;
+    sf::Sound m_audio_item_pick;
 };
 

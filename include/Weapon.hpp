@@ -11,9 +11,18 @@
 
 class Weapon : public ns::Drawable {
 public :
+    enum class Type {
+        Pistol,
+        Rifle,
+        Sniper,
+        Melee
+    };
     Weapon();
 
+    auto getType() const -> Type;
+
     auto getAmmo() const -> int;
+    auto getMaxAmmo() const -> int;
     void setAmmo(int amount);
 
     auto getDamage() const -> int;
@@ -35,12 +44,14 @@ public :
     auto getGlobalBounds() const -> ns::FloatRect override;
 
 protected :
+    Type m_type;
     int m_hide = true;
-    int m_damage;
-    float m_range;
-    int m_ammo;
+    int m_damage{};
+    float m_range{};
+    int m_max_ammo = 1;
+    int m_ammo{};
     bool m_attacking;
-    bool m_aiming;
+    bool m_aiming{};
 
     Cooldown m_cooldown;
 
@@ -65,6 +76,7 @@ public :
     void update() override;
 
 private :
+    Cooldown m_reload_cd;
     int m_dispersion;
     bool m_aiming;
     float m_recoil;
@@ -81,6 +93,7 @@ public :
     void update() override;
 
 private :
+    Cooldown m_reload_cd;
     int m_dispersion;
     bool m_aiming;
     float m_recoil;
@@ -96,6 +109,8 @@ public :
     void update() override;
 
 private :
+    int m_max_ammo = 500;
+    Cooldown m_reload_cd;
     int m_dispersion;
     bool m_aiming;
     float m_recoil;

@@ -10,6 +10,9 @@ Player::Player() : LevelObject("Player") {
     setSize({METER, 1.8f*METER});
     m_eye_pos = -1.45f*METER;
 
+    m_max_hp = 100;
+    m_hp = m_max_hp/1.5f;
+
     m_spritesheet = std::make_unique<ns::Spritesheet>("adventurer", getTexture());
     auto* idle_anim = new ns::Anim("idle", {});
     idle_anim->add({{14, 6, 20, 30}, 150});
@@ -67,11 +70,27 @@ auto Player::getEyePos() const -> float {
     return m_z+m_eye_pos;
 }
 
+void Player::setHP(int hp) {
+    m_hp = std::min(hp, m_max_hp);
+}
+
+auto Player::getHP() const -> int {
+    return m_hp;
+}
+
+auto Player::getMaxHP() const -> int {
+    return m_max_hp;
+}
+
 bool Player::isRunning() const {
     return m_running;
 }
 
-auto Player::getActiveWeapon() -> Weapon* {
+auto Player::allWeapons() const -> const std::vector<Weapon*>& {
+    return m_weapons;
+}
+
+auto Player::getActiveWeapon() const -> Weapon* {
     return m_active_weapon;
 }
 
@@ -107,9 +126,9 @@ void Player::update() {
     bool all_hidden = true;
     for (unsigned i = 0; i < m_weapons.size(); ++i) {
         if (i != m_active_weapon_index) {
+            m_weapons[i]->update();
             if (!m_weapons[i]->isHidden()) {
                 all_hidden = false;
-                m_weapons[i]->update();
             }
         }
     }

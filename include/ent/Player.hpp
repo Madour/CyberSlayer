@@ -11,9 +11,14 @@ public:
     Player();
     auto getTextureRect() -> const ns::IntRect& override;
 
+    auto allWeapons() const -> const std::vector<Weapon*>&;
     void setZ(float z);
 
-    auto getActiveWeapon() -> Weapon*;
+    void setHP(int hp);
+    auto getHP() const -> int;
+    auto getMaxHP() const -> int;
+
+    auto getActiveWeapon() const -> Weapon*;
     void selectNextWeapon();
     void selectPrevWeapon();
     void addWeapon(Weapon* new_weapon);
@@ -24,6 +29,8 @@ public:
     void update() override;
 
 private:
+    int m_hp;
+    int m_max_hp;
     float m_eye_pos;
     bool m_jumping = false;
     bool m_running = true;
