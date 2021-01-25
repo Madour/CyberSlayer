@@ -4,3 +4,5 @@ build-release
 .idea
 .vs
 .vscode
+docs/html
+docs/latex
