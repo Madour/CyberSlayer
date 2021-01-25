@@ -1,5 +1,6 @@
 #pragma once
 
+#include <SFML/Audio.hpp>
 #include "LevelObject.hpp"
 #include "Constants.hpp"
 
@@ -47,4 +48,7 @@ private:
 
     std::unique_ptr<ns::Spritesheet> m_spritesheet;
     ns::AnimPlayer m_anim_player;
+
+    sf::SoundBuffer m_sound_buffer_jump_landing;
+    sf::Sound m_sound_jump_landing;
 };

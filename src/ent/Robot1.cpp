@@ -16,6 +16,10 @@ Robot1::Robot1() : LevelObject("Robot1") {
 
     addComponent<ns::ecs::PhysicsComponent>(sf::Vector2f(0.3f*METER/UPS, 0.3f*METER/UPS), 2.f, sf::Vector2f(0.1f, 0.1f));
 
+    m_cooldown_sound = sf::seconds(5+std::rand()%3);
+    m_clk.restart();
+    m_sound_buffer.loadFromFile("assets/robot.wav");
+    m_sound.setBuffer(m_sound_buffer);
 }
 
 void Robot1::update() {
@@ -47,6 +51,11 @@ void Robot1::update() {
             m_anim_player.play(m_spritesheet->getAnim("idle"));
     }
 
+
+    if (m_clk.getElapsedTime() > m_cooldown_sound) {
+        m_clk.restart();
+        m_sound.play();
+    }
 
     m_anim_player.update();
 

@@ -34,6 +34,9 @@ Player::Player() : LevelObject("Player") {
 
     m_anim_player.play(m_spritesheet->getAnim("idle"));
 
+    m_sound_buffer_jump_landing.loadFromFile("assets/jump_landing.ogg");
+    m_sound_jump_landing.setBuffer(m_sound_buffer_jump_landing);
+
     // acceleration, mass, friction
     addComponent<ns::ecs::PhysicsComponent>(sf::Vector2f(0.5f*METER/UPS, 0.5f*METER/UPS), 1.f, sf::Vector2f(0.1f, 0.1f));
 
@@ -198,6 +201,7 @@ void Player::update() {
             m_z = 0;
             m_z_vel = 0.f;
             m_jumping = false;
+            m_sound_jump_landing.play();
         }
     }
     // up down walking effect

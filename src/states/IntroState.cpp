@@ -16,10 +16,11 @@ void IntroState::init() {
     bg_scene->getDefaultLayer()->clear();
 
     bg_scene->getDefaultLayer()->addRaw(&m_bg_sprite);
-    m_cooldown = sf::seconds(19);
+    m_cooldown = sf::seconds(22);
     m_clk.restart();
 
     game->level_music.play();
+    game->level_music.setVolume(80);
 }
 
 void IntroState::onEvent(const sf::Event& event) {

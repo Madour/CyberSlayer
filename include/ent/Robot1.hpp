@@ -1,5 +1,6 @@
 #pragma once
 
+#include <SFML/Audio.hpp>
 #include "LevelObject.hpp"
 
 class Robot1 : public LevelObject {
@@ -18,4 +19,10 @@ private:
 
     std::unique_ptr<ns::Spritesheet> m_spritesheet;
     ns::AnimPlayer m_anim_player;
+
+    sf::SoundBuffer m_sound_buffer;
+    sf::Sound m_sound;
+
+    sf::Time m_cooldown_sound;
+    sf::Clock m_clk;
 };
