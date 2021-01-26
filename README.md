@@ -35,4 +35,14 @@ You'll maybe get some warnings when compiling (type conversion from float to int
 - Aim : right mouse click 
 - Change weapon : mouse wheel
 
+
+#### Misc
+
+- Choosing an antialiasing higher than 0 may cause valgrind to detect memory leaks, otherwise there are none
+
+#### Authors
+
+- Modar Nasser
+- Paul Fourcade
+
 ---
