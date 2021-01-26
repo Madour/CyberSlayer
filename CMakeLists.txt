@@ -11,7 +11,7 @@
 
 ###### User Configuration #####################################################
 # Project Name, which is also the ouput binary file name
-set(PROJECT_NAME "RayCastFPS")
+set(PROJECT_NAME "CyberSlayer")
 # Assets directory path, will be copied in bin when cmake is called
 set(ASSETS_DIR_NAME "assets")
 ###############################################################################
