@@ -79,7 +79,7 @@ HUD::HUD(Player* player) : m_player(player) {
     m_sniper_ammo.setOrigin(0, 105);
     m_sniper_ammo.rotate(90.f);
     m_sniper_ammo.move(15, 15);
-    m_sniper_ammo.scale(0.8, 0.8);
+    m_sniper_ammo.scale(0.8f, 0.8f);
 
 }
 
@@ -110,7 +110,7 @@ auto HUD::getPosition() const -> sf::Vector2f {
 }
 
 auto HUD::getGlobalBounds() const -> ns::FloatRect {
-    return {0, 0, VIEW_WIDTH, VIEW_HEIGHT};
+    return {0, 0, (float)VIEW_WIDTH, (float)VIEW_HEIGHT};
 }
 
 void HUD::draw(sf::RenderTarget& target, sf::RenderStates states) const {
