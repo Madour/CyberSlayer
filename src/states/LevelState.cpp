@@ -271,7 +271,7 @@ void LevelState::preRender() {
             float ground = m_horizon +  (0 - m_camera.getPosition3D().z) * ratio + 1;
             int index;
             bool pr = true;
-            for (int y = (int)ceiling; y < ground; y += 1) {
+            for (int y = (int)ceiling+1; y < ground; y += 1) {
                 if ( y < 0 || y >= VIEW_HEIGHT)
                     continue;
                 auto tex_x = static_cast<int>(wall_hit.tex_coo);
