@@ -6,10 +6,10 @@
 
 #### Screenshots
 
-[screenshot1](media/screen1.png)
-[screenshot2](media/screen2.png)
-[screenshot3](media/screen3.png)
-[gif1](media/gif1.gif)
+![screenshot1](media/screen1.png)
+![screenshot2](media/screen2.png)
+![screenshot3](media/screen3.png)
+![gif1](media/gif1.gif)
 
 #### Game controls
 
