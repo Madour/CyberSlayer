@@ -4,6 +4,25 @@
 
 > Coming Soon
 
+#### Screenshots
+
+[screenshot1](media/screen1.png)
+[screenshot2](media/screen2.png)
+[screenshot3](media/screen3.png)
+[gif1](media/gif1.gif)
+
+#### Game controls
+
+- Player movement : zqsd
+- Camera movement : mouse
+- Jump : space bar
+- Run : hold Left Shift
+- Shoot : left mouse click
+- Aim : right mouse click
+- Change weapon : mouse wheel
+
+
+
 #### Install
 
 To install, you need : 
@@ -18,23 +37,11 @@ Run the following commands to clone and build
 git clone --recurse https://github.com/Madour/CyberSlayer
 cd CyberSlayer
 mkdir build && cd build
-cmake ..
+cmake .. -DCMAKE_BUILD_TYPE=Release
 cmake --build . --config Release
 ```
 
 You'll maybe get some warnings when compiling (type conversion from float to int / int to float), you can ignore them.
-
-
-#### Game controls
-
-- Player movement : zqsd
-- Camera movement : mouse
-- Jump : space bar
-- Run : hold Left Shift
-- Shoot : left mouse click 
-- Aim : right mouse click 
-- Change weapon : mouse wheel
-
 
 #### Misc
 
