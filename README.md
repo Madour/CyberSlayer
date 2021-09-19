@@ -6,11 +6,16 @@
 
 #### Screenshots
 
-![screenshot1](media/screen1.png)
-![screenshot2](media/screen2.png)
-![screenshot3](media/screen3.png)
-![screenshot4](media/screen4.png)
+| ![screenshot1](media/screen1.png) | ![screenshot2](media/screen2.png) |
+|-----------------------------------|-----------------------------------|
+| ![screenshot3](media/screen3.png) | ![screenshot4](media/screen4.png) |
+
+##### Desktop
 ![gif1](media/gif1.gif)
+
+##### Android
+[![image](https://user-images.githubusercontent.com/11854124/133921705-fe7a4bd0-0068-4fc0-b750-330d5bb1d8ef.png)](https://www.youtube.com/watch?v=DDC0JBW6rxM)
+
 
 #### Game controls
 
